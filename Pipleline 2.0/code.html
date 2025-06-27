@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Process Lifecycle Simulation</title>
+    <style>
+        /* Basic CSS Styling */
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+
+        h1 {
+            text-align: center;
+            padding: 20px 0;
+            background-color: #0056b3;
+            color: white;
+            margin: 0;
+        }
+
+        #process-list,
+        #process-details,
+        #controls,
+        #log {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 10px;
+            background-color: white;
+            border-radius: 5px;
+        }
+
+        #process-list h3,
+        #process-details h3,
+        #log h3 {
+            margin-top: 0;
+            color: #0056b3;
+        }
+
+        #controls button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #controls button:hover {
+            background-color: #0056b3;
+        }
+
+        #controls input[type="number"] {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-right: 5px;
+        }
+
+        #log {
+            height: 200px;
+            overflow-y: scroll;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 600px) {
+            #controls button {
+                display: block;
+                width: 100%;
+                margin-bottom: 5px;
+            }
+        }
+
+        /* Tab Styling */
+        .tab {
+            overflow: hidden;
+            border: 1px solid #ccc;
+            background-color: #f1f1f1;
+        }
+
+        .tab button {
+            background-color: inherit;
+            float: left;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 14px 16px;
+            transition: 0.3s;
+        }
+
+        .tab button:hover {
+            background-color: #ddd;
+        }
+
+        .tab button.active {
+            background-color: #ccc;
+        }
+
+        .tabcontent {
+            display: none;
+            padding: 6px 12px;
+            border: 1px solid #ccc;
+            border-top: none;
+        }
+
+        /* Quiz Styling */
+        .quiz-container {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 10px;
+            background-color: white;
+            border-radius: 5px;
+        }
+
+        .question {
+            margin-bottom: 10px;
+        }
+
+        .options label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        #results {
+            font-weight: bold;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Process Lifecycle Simulation</h1>
+
+    <div class="tab">
+        <button class="tablinks" onclick="openTab(event, 'Introduction')">Introduction</button>
+        <button class="tablinks" onclick="openTab(event, 'Aim')">Aim</button>
+        <button class="tablinks" onclick="openTab(event, 'Theory')">Theory</button>
+        <button class="tablinks" onclick="openTab(event, 'Objective')">Objective</button>
+        <button class="tablinks" onclick="openTab(event, 'Procedure')">Procedure</button>
+        <button class="tablinks" onclick="openTab(event, 'Simulation')">Simulation</button>
+        <button class="tablinks" onclick="openTab(event, 'Pretest')">Pretest Questions</button>
+    </div>
+
+    <div id="Introduction" class="tabcontent">
+        <h3>Introduction</h3>
+        <p>Welcome to the Process Lifecycle Simulation! This virtual lab allows you to explore the different states a process goes through during its execution. You can create processes, change their states, and observe the effects on the system.</p>
+        <p>This simulation is designed to help you understand the fundamental concepts of process management in operating systems. By interacting with the simulation, you will gain a practical understanding of how processes are created, managed, and terminated.</p>
+    </div>
+
+    <div id="Aim" class="tabcontent">
+        <h3>Aim</h3>
+        <p>The aim of this simulation is to understand the process lifecycle and the transitions between different process states.  Specifically, you will learn how processes move between the New, Ready, Running, Waiting, and Terminated states.</p>
+    </div>
+
+    <div id="Theory" class="tabcontent">
+        <h3>Theory</h3>
+        <p>In operating systems, a process goes through several states during its lifetime. These states include New, Ready, Running, Waiting, and Terminated. Understanding these states and the transitions between them is crucial for understanding how operating systems manage processes.</p>
+        <p><b>New:</b> The process is being created.  Resources are being allocated, and the process is not yet ready to execute.</p>
+        <p><b>Ready:</b> The process is waiting to be assigned to a processor. It has all the necessary resources and is ready to run as soon as the CPU is available.</p>
+        <p><b>Running:</b> Instructions are being executed by the CPU.  This is the state where the process is actively performing its task.</p>
+        <p><b>Waiting:</b> The process is waiting for some event to occur (e.g., I/O completion, resource availability).  The process is blocked and cannot proceed until the event occurs.</p>
+        <p><b>Terminated:</b> The process has finished execution.  All resources have been deallocated, and the process no longer exists.</p>
+    </div>
+
+    <div id="Objective" class="tabcontent">
+        <h3>Objective</h3>
+        <ul>
+            <li>To create processes and observe their initial state.</li>
+            <li>To transition processes between different states (Ready, Running, Waiting, Terminated).</li>
+            <li>To understand the conditions that cause a process to transition from one state to another.</li>
+            <li>To observe the Process Control Block (PCB) and its contents.</li>
+            <li>To understand the concept of context switching.</li>
+        </ul>
+    </div>
+
+    <div id="Procedure" class="tabcontent">
+        <h3>Procedure</h3>
+        <ol>
+            <li>Click the "Create Process" button to create a new process. A unique Process ID will be automatically assigned.</li>
+            <li>Enter a Process ID in the input field if you want to manipulate a specific process.</li>
+            <li>Click the "Switch to Ready", "Switch to Running", "Switch to Waiting", or "Terminate" buttons to change the state of the selected process. Note that not all transitions are valid; the simulation will alert you if you attempt an invalid transition.</li>
+            <li>Observe the changes in the process list, process details, and log. The log will record all actions performed.</li>
+            <li>Examine the Process Control Block (PCB) for each process to see the data associated with it.</li>
+        </ol>
+    </div>
+
+    <div id="Simulation" class="tabcontent">
+        <h3>Simulation</h3>
+        <div id="process-list">
+            <!-- Process list will be rendered here -->
+        </div>
+
+        <div id="process-details">
+            <!-- Process details will be displayed here -->
+        </div>
+
+        <div id="controls">
+            <!-- Control buttons and input fields -->
+            <button onclick="processManager.createProcess()">Create Process</button>
+            <input type="number" id="processIdInput" placeholder="Process ID">
+            <button onclick="switchProcessState('Ready')">Switch to Ready</button>
+            <button onclick="switchProcessState('Running')">Switch to Running</button>
+            <button onclick="switchProcessState('Waiting')">Switch to Waiting</button>
+            <button onclick="switchProcessState('Terminated')">Terminate</button>
+        </div>
+
+        <div id="log">
+            <!-- Log messages will be displayed here -->
+        </div>
+    </div>
+
+    <div id="Pretest" class="tabcontent">
+        <h3>Pretest Questions</h3>
+        <div class="quiz-container">
+            <div class="question">
+                <p>1. What is the first state a process enters when it is created?</p>
+                <div class="options">
+                    <label><input type="radio" name="q1" value="New"> New</label>
+                    <label><input type="radio" name="q1" value="Ready"> Ready</label>
+                    <label><input type="radio" name="q1" value="Running"> Running</label>
+                    <label><input type="radio" name="q1" value="Waiting"> Waiting</label>
+                </div>
+            </div>
+
+            <div class="question">
+                <p>2. Which state indicates that a process is currently being executed by the CPU?</p>
+                <div class="options">
+                    <label><input type="radio" name="q2" value="New"> New</label>
+                    <label><input type="radio" name="q2" value="Ready"> Ready</label>
+                    <label><input type="radio" name="q2" value="Running"> Running</label>
+                    <label><input type="radio" name="q2" value="Waiting"> Waiting</label>
+                </div>
+            </div>
+
+            <div class="question">
+                <p>3. A process in the 'Waiting' state is waiting for what?</p>
+                <div class="options">
+                    <label><input type="radio" name="q3" value="CPU time"> CPU time</label>
+                    <label><input type="radio" name="q3" value="I/O completion"> I/O completion</label>
+                    <label><input type="radio" name="q3" value="Termination"> Termination</label>
+                    <label><input type="radio" name="q3" value="Memory allocation"> Memory allocation</label>
+                </div>
+            </div>
+
+            <button onclick="checkAnswers()">Submit Answers</button>
+            <div id="results"></div>
+        </div>
+    </div>
+
+    <script>
+        // Process Class
+        class Process {
+            constructor(id) {
+                this.id = id;
+                this.state = "New"; // New, Ready, Running, Waiting, Terminated
+                this.pcb = {
+                    processId: id,
+                    programCounter: 0,
+                    registers: {},
+                    memoryAllocation: {}
+                };
+            }
+
+            setState(newState) {
+                this.state = newState;
+            }
+
+            updatePCB(data) {
+                Object.assign(this.pcb, data); // Merge data into PCB
+            }
+        }
+
+        // Logging Module
+        const loggingModule = {
+            logEntries: [],
+
+            log(message) {
+                this.logEntries.push(message);
+            },
+
+            displayLog() {
+                const logDiv = document.getElementById("log");
+                logDiv.innerHTML = "<h3>Log:</h3>";
+                this.logEntries.forEach(entry => {
+                    const logEntryElement = document.createElement("div");
+                    logEntryElement.textContent = entry;
+                    logDiv.appendChild(logEntryElement);
+                });
+            }
+        };
+
+        // Validation Module
+        const validationModule = {
+            isValidTransition(currentState, newState) {
+                const validTransitions = {
+                    "New": ["Ready"],
+                    "Ready": ["Running"],
+                    "Running": ["Waiting", "Terminated", "Ready"],
+                    "Waiting": ["Ready"],
+                    "Terminated": []
+                };
+
+                return validTransitions[currentState] && validTransitions[currentState].includes(newState);
+            }
+        };
+
+        // Process Manager Module
+        const processManager = {
+            processes: [],
+            nextProcessId: 1,
+            loggingModule: loggingModule, // Inject logging module
+            validationModule: validationModule, // Inject validation module
+
+            createProcess() {
+                const newProcess = new Process(this.nextProcessId++);
+                this.processes.push(newProcess);
+                this.logAction(`Process ${newProcess.id} created.`);
+                this.updateUI(); // Call a function to update the UI
+                return newProcess;
+            },
+
+            switchContext(processId, newState) {
+                const process = this.findProcess(processId);
+                if (!process) {
+                    alert(`Process with ID ${processId} not found.`);
+                    return;
+                }
+
+                if (this.validationModule.isValidTransition(process.state, newState)) {
+                    process.setState(newState);
+                    this.logAction(`Process ${processId} switched to ${newState}.`);
+                    this.updateUI();
+                } else {
+                    alert(`Invalid state transition from ${process.state} to ${newState}.`);
+                }
+            },
+
+            findProcess(processId) {
+                return this.processes.find(p => p.id === processId);
+            },
+
+            logAction(message) {
+                this.loggingModule.log(message);
+            },
+
+            // Placeholder for UI update function (implement in Phase 3)
+            updateUI() {
+                // To be implemented later
+                console.log("UI Updated");
+                this.renderProcessList();
+                this.renderProcessDetails();
+                this.loggingModule.displayLog();
+            },
+
+            renderProcessList() {
+                const processListDiv = document.getElementById("process-list");
+                processListDiv.innerHTML = "<h3>Processes:</h3>";
+                this.processes.forEach(process => {
+                    const processElement = document.createElement("div");
+                    processElement.textContent = `ID: ${process.id}, State: ${process.state}`;
+                    processListDiv.appendChild(processElement);
+                });
+            },
+
+            renderProcessDetails() {
+                const processDetailsDiv = document.getElementById("process-details");
+                processDetailsDiv.innerHTML = "<h3>Process Details:</h3>";
+                const processIdInput = document.getElementById("processIdInput");
+                const processId = parseInt(processIdInput.value);
+                let selectedProcess = null;
+
+                if (!isNaN(processId)) {
+                    selectedProcess = this.findProcess(processId);
+                } else if (this.processes.length > 0) {
+                    selectedProcess = this.processes[0]; // Default to the first process if no ID is entered
+                }
+
+                if (selectedProcess) {
+                    processDetailsDiv.innerHTML += `<p>ID: ${selectedProcess.id}</p>`;
+                    processDetailsDiv.innerHTML += `<p>State: ${selectedProcess.state}</p>`;
+                    processDetailsDiv.innerHTML += `<p>PCB: ${JSON.stringify(selectedProcess.pcb)}</p>`;
+                } else {
+                    processDetailsDiv.innerHTML += "<p>No processes created yet, or invalid Process ID.</p>";
+                }
+            }
+        };
+
+        // Function to switch process state
+        function switchProcessState(newState) {
+            const processId = parseInt(document.getElementById("processIdInput").value);
+            if (isNaN(processId)) {
+                alert("Please enter a valid Process ID.");
+                return;
+            }
+            processManager.switchContext(processId, newState);
+        }
+
+        // Tab management
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tabcontent");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+            tablinks = document.getElementsByClassName("tablinks");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.className += " active";
+        }
+
+        // Set default tab to Introduction
+        document.addEventListener("DOMContentLoaded", function() {
+            document.getElementsByClassName("tablinks")[0].click();
+        });
+
+        // Quiz functionality
+        function checkAnswers() {
+            let score = 0;
+            const q1Answer = document.querySelector('input[name="q1"]:checked');
+            const q2Answer = document.querySelector('input[name="q2"]:checked');
+            const q3Answer = document.querySelector('input[name="q3"]:checked');
+
+            if (q1Answer && q1Answer.value === "New") {
+                score++;
+            }
+            if (q2Answer && q2Answer.value === "Running") {
+                score++;
+            }
+            if (q3Answer && q3Answer.value === "I/O completion") {
+                score++;
+            }
+
+            document.getElementById("results").textContent = `You scored ${score} out of 3.`;
+        }
+    </script>
+
+</body>
+</html>

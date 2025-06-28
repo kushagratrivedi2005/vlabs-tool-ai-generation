@@ -12,13 +12,27 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 class Pipeline:
     llm = None
     max_loop = 3
-
+    
     def __init__(self):
         self.llm = ChatGoogleGenerativeAI(
             model="gemini-2.0-flash-exp",
             temperature=0.1,
             max_tokens=100000
         )
+        # Initialize document store for RAG if needed
+        self.rag_enabled = False
+        try:
+            from rag.document_store import DocumentStore
+            self.document_store = DocumentStore()
+            print("RAG document store initialized")
+        except Exception as e:
+            print(f"Could not initialize RAG: {str(e)}")
+            self.document_store = None
+
+    def enable_rag(self, enabled=True):
+        """Enable or disable RAG for all agents"""
+        self.rag_enabled = enabled and self.document_store is not None
+        return self.rag_enabled
 
     def run(self):
         reqAgent = RequirementsAgent("1.pdf")
@@ -77,6 +91,25 @@ class Pipeline:
         documentation_agent_output = documentation_agent.get_output()
         with open("documentation.md", "w") as f:
             f.write(documentation_agent_output)
+
+        # Apply RAG to all agents if enabled
+        if self.rag_enabled and self.document_store:
+            reqAgent.enable_rag(self.document_store)
+        
+        # Same for other agents
+        if self.rag_enabled and self.document_store:
+            human_review.enable_rag(self.document_store)
+            
+        if self.rag_enabled and self.document_store:
+            implementation_agent.enable_rag(self.document_store)
+            
+        if self.rag_enabled and self.document_store:
+            coding_agent.enable_rag(self.document_store)
+            
+        if self.rag_enabled and self.document_store:
+            documentation_agent.enable_rag(self.document_store)
+            
+        # ...existing code...
 
 
 if __name__ == "__main__":

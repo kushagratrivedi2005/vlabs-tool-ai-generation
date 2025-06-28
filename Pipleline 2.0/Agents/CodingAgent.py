@@ -1,5 +1,5 @@
 import PyPDF2
-from langchain import PromptTemplate
+from langchain_core.prompts import PromptTemplate  
 from langchain.chains.llm import LLMChain
 from langchain_google_genai import ChatGoogleGenerativeAI
 from typing_extensions import override
@@ -9,7 +9,7 @@ from BaseAgent import BaseAgent
 
 class CodingAgent(BaseAgent):
     role = "Coding Agent"
-    basic_prompt_template = """
+    basic_prompt_template = r"""
     You are a proficient CodingAgent.
     Based on the instructions provided generate a well-structured and fully commented code module.
     The module must be designed to be integrated directly into a self-contained HTML file that includes inline CSS and JavaScript.
@@ -62,7 +62,7 @@ class CodingAgent(BaseAgent):
 
 if __name__ == "__main__":
     print("This is a Coding Agent module. It is not meant to be run directly.")
-    coding_instructions = """
+    coding_instructions = r"""
     kay, here is the comprehensive Implementation Plan for the Process Lifecycle and Context Switching Simulator, adhering strictly to the provided requirements and the single-file constraint.
 
 **Implementation Plan: Process Lifecycle & Context Switching Simulator**
@@ -174,7 +174,7 @@ These will be logical groupings of functions/objects within the single `<script>
             *   *Simulate Load:* Copy relevant properties *from* the `incomingPCB` object *to* the conceptual "CPU state" (`currentPC = incomingPCB.programCounter; currentRegisters = { ...incomingPCB.registers };`).
             *   Log: "Loaded context for Process " + `incomingProcessId`.
         *   **Update States:**
-            *   Call appropriate state transition functions (e.g., `moveToWaiting(outgoingProcessId)` or `moveToReady(outgoingProcessId)`, and `moveToRunning(incomingProcessId)`).
+            *   Call appropriate state transition functions (e.g., `moveToWaiting(outgoingProcessId)` or `moveToReady(outgoingProcessId),` and `moveToRunning(incomingProcessId)`).
         *   **Validation:** Perform conceptual validation: Check if `outgoingPCB.programCounter` was updated *before* `currentPC` was overwritten by the incoming process's data. Log validation success/failure.
         *   Log: "Context Switch complete: " + `outgoingProcessId` + " -> " + `incomingProcessId`.
         *   Trigger `UIManager` updates.

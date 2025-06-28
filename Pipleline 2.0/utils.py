@@ -44,7 +44,10 @@ def init_session_state():
         "uploaded_file": None,
         "chat_history": [],
         "current_step": "requirements",
-        "selected_model": "gemini-2.0-flash-exp"
+        "selected_model": "gemini-2.0-flash-exp",
+        "rag_enabled": False,
+        "rag_documents": [],
+        "rag_n_results": 5
     }
     
     for var, default_value in session_vars.items():
@@ -66,6 +69,24 @@ def get_progress():
     return (completed / len(steps)) * 100
 
 
+def initialize_rag():
+    """Initialize RAG components"""
+    try:
+        # First ensure the RAG environment is properly set up
+        from rag import setup_rag_environment
+        setup_rag_environment()
+        
+        # Then initialize the document store
+        if "document_store" not in st.session_state:
+            from rag.document_store import DocumentStore
+            st.session_state.document_store = DocumentStore()
+        
+        return True
+    except Exception as e:
+        st.error(f"Failed to initialize RAG: {str(e)}")
+        return False
+
+
 def generate_requirements():
     """Generate initial requirements from an uploaded PDF"""
     if st.session_state.uploaded_file is None:
@@ -75,6 +96,11 @@ def generate_requirements():
     req_agent = RequirementsAgent(str(st.session_state.uploaded_file))
     req_agent.set_llm(st.session_state.llm)
     req_agent.set_prompt_enhancer_llm(st.session_state.llm)
+    
+    # Enable RAG if configured
+    if st.session_state.get("rag_enabled", False) and "document_store" in st.session_state:
+        req_agent.enable_rag(st.session_state.document_store)
+    
     req_agent.enhance_prompt()
     return req_agent.get_output()
 
@@ -87,6 +113,11 @@ def review_requirements(user_review, base_text):
     review_agent = HumanReviewAgentForRequirement(user_review, base_text)
     review_agent.set_llm(st.session_state.llm)
     review_agent.set_prompt_enhancer_llm(st.session_state.llm)
+    
+    # Enable RAG if configured
+    if st.session_state.get("rag_enabled", False) and "document_store" in st.session_state:
+        review_agent.enable_rag(st.session_state.document_store)
+    
     review_agent.enhance_prompt()
     return review_agent.get_output()
 
@@ -96,6 +127,11 @@ def generate_implementation(requirements_text):
     impl_agent = ImplementationAgent(requirements_text)
     impl_agent.set_llm(st.session_state.llm)
     impl_agent.set_prompt_enhancer_llm(st.session_state.llm)
+    
+    # Enable RAG if configured
+    if st.session_state.get("rag_enabled", False) and "document_store" in st.session_state:
+        impl_agent.enable_rag(st.session_state.document_store)
+    
     return impl_agent.get_output()
 
 
@@ -104,6 +140,11 @@ def generate_code(impl_text, code_review):
     coding_agent = CodingAgent(impl_text, code_review)
     coding_agent.set_llm(st.session_state.llm)
     coding_agent.set_prompt_enhancer_llm(st.session_state.llm)
+    
+    # Enable RAG if configured
+    if st.session_state.get("rag_enabled", False) and "document_store" in st.session_state:
+        coding_agent.enable_rag(st.session_state.document_store)
+    
     coding_agent.enhance_prompt()
     return coding_agent.get_output()
 
@@ -118,6 +159,11 @@ def generate_documentation(code_text):
     doc_agent = DocumentationAgent(context)
     doc_agent.set_llm(st.session_state.llm)
     doc_agent.set_prompt_enhancer_llm(st.session_state.llm)
+    
+    # Enable RAG if configured
+    if st.session_state.get("rag_enabled", False) and "document_store" in st.session_state:
+        doc_agent.enable_rag(st.session_state.document_store)
+    
     doc_agent.enhance_prompt()
     return doc_agent.get_output()
 
@@ -127,6 +173,11 @@ def generate_website(simulation_code, website_feedback=None, previous_website_co
     website_agent = WebsiteDesignAgent(simulation_code, website_feedback, previous_website_code)
     website_agent.set_llm(st.session_state.llm)
     website_agent.set_prompt_enhancer_llm(st.session_state.llm)
+    
+    # Enable RAG if configured
+    if st.session_state.get("rag_enabled", False) and "document_store" in st.session_state:
+        website_agent.enable_rag(st.session_state.document_store)
+    
     website_agent.enhance_prompt()
     return website_agent.get_output()
 

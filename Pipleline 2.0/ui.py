@@ -22,8 +22,14 @@ from styles import get_all_styles
 from ui_components import (
     render_header, render_theme_toggle, render_model_selection,
     render_progress_tracker, render_chat_interface,
-    render_footer, render_status_badge, render_step_tracker, render_file_upload_for_requirements
+    render_footer, render_status_badge, render_step_tracker, render_file_upload_for_requirements,
+    # RAG UI components moved from rag/rag_ui_components.py
+    render_rag_file_uploader, render_rag_document_manager, 
+    render_rag_settings, process_rag_files, initialize_rag
 )
+
+# Disable ChromaDB telemetry to fix the capture() error
+os.environ["CHROMADB_TELEMETRY"] = "0"
 
 # ---------------------------------------------------
 # Page Configuration
@@ -83,6 +89,12 @@ def init_session_state():
         st.session_state.max_tokens = 100000
     if "preview_url" not in st.session_state:
         st.session_state.preview_url = None
+    if "rag_enabled" not in st.session_state:
+        st.session_state.rag_enabled = False
+    if "rag_documents" not in st.session_state:
+        st.session_state.rag_documents = []
+    if "rag_n_results" not in st.session_state:
+        st.session_state.rag_n_results = 5
 
 # Agent Functions
 def generate_requirements():
@@ -94,9 +106,13 @@ def generate_requirements():
     req_agent = RequirementsAgent(str(st.session_state.uploaded_file))
     req_agent.set_llm(st.session_state.llm)
     req_agent.set_prompt_enhancer_llm(st.session_state.llm)
+    
+    # Enable RAG if configured
+    if st.session_state.get("rag_enabled", False) and "document_store" in st.session_state:
+        req_agent.enable_rag(st.session_state.document_store)
+    
     req_agent.enhance_prompt()
-    output = req_agent.get_output()
-    return output
+    return req_agent.get_output()
 
 def review_requirements(user_review, base_text):
     """Let the human review the generated requirements.
@@ -107,6 +123,11 @@ def review_requirements(user_review, base_text):
     review_agent = HumanReviewAgentForRequirement(user_review, base_text)
     review_agent.set_llm(st.session_state.llm)
     review_agent.set_prompt_enhancer_llm(st.session_state.llm)
+    
+    # Enable RAG if configured
+    if st.session_state.get("rag_enabled", False) and "document_store" in st.session_state:
+        review_agent.enable_rag(st.session_state.document_store)
+    
     review_agent.enhance_prompt()
     return review_agent.get_output()
 
@@ -115,6 +136,11 @@ def generate_implementation(requirements_text):
     impl_agent = ImplementationAgent(requirements_text)
     impl_agent.set_llm(st.session_state.llm)
     impl_agent.set_prompt_enhancer_llm(st.session_state.llm)
+    
+    # Enable RAG if configured
+    if st.session_state.get("rag_enabled", False) and "document_store" in st.session_state:
+        impl_agent.enable_rag(st.session_state.document_store)
+    
     return impl_agent.get_output()
 
 def generate_code(impl_text, code_review):
@@ -122,6 +148,11 @@ def generate_code(impl_text, code_review):
     coding_agent = CodingAgent(impl_text, code_review)
     coding_agent.set_llm(st.session_state.llm)
     coding_agent.set_prompt_enhancer_llm(st.session_state.llm)
+    
+    # Enable RAG if configured
+    if st.session_state.get("rag_enabled", False) and "document_store" in st.session_state:
+        coding_agent.enable_rag(st.session_state.document_store)
+    
     coding_agent.enhance_prompt()
     return coding_agent.get_output()
 
@@ -159,6 +190,11 @@ def generate_website(simulation_code, website_feedback=None, previous_website_co
     website_agent = WebsiteDesignAgent(simulation_code, website_feedback, previous_website_code)
     website_agent.set_llm(st.session_state.llm)
     website_agent.set_prompt_enhancer_llm(st.session_state.llm)
+    
+    # Enable RAG if configured
+    if st.session_state.get("rag_enabled", False) and "document_store" in st.session_state:
+        website_agent.enable_rag(st.session_state.document_store)
+    
     website_agent.enhance_prompt()
     return website_agent.get_output()
 
@@ -255,12 +291,13 @@ st.markdown(get_all_styles(st.session_state.dark_mode), unsafe_allow_html=True)
 # Sidebar Toggle State Initialization
 # ---------------------------------------------------
 if "sidebar_mode" not in st.session_state:
-    st.session_state.sidebar_mode = "ai_config"  # or "chat"
+    st.session_state.sidebar_mode = "ai_config"  # or "chat" or "rag_config"
 
 # ---------------------------------------------------
 # Sidebar Content
 # ---------------------------------------------------
 with st.sidebar:
+    # Display the appropriate sidebar content based on mode
     if st.session_state.sidebar_mode == "ai_config":
         # Model Selection (returns model, temp, max_tokens)
         selected_model, selected_temp, selected_max_tokens = render_model_selection()
@@ -316,6 +353,48 @@ Provide helpful, friendly guidance with emojis. Keep responses concise but infor
         if clear_clicked:
             st.session_state.chat_history = []
             st.rerun()
+    elif st.session_state.sidebar_mode == "rag_config":
+        st.markdown("## 📚 RAG Configuration")
+        st.markdown("Configure Retrieval Augmented Generation settings and upload knowledge base documents.")
+        
+        # Initialize RAG at the beginning of the section - with better error handling
+        rag_initialized = False
+        try:
+            if initialize_rag():
+                rag_initialized = True
+        except Exception as e:
+            st.error(f"Error initializing RAG: {str(e)}")
+            st.info("Please install required packages: pip install langchain-community chromadb")
+            
+        # RAG settings
+        render_rag_settings()
+        
+        # Upload files for RAG
+        uploaded_files = render_rag_file_uploader()
+        if uploaded_files:
+            if st.button("📥 Process Uploaded Files", use_container_width=True):
+                with st.spinner("Processing files..."):
+                    # Check if document_store is initialized
+                    if rag_initialized and "document_store" in st.session_state and st.session_state.document_store is not None:
+                        try:
+                            successful, docs_metadata = process_rag_files(uploaded_files, st.session_state.document_store)
+                            st.success(f"✅ Successfully added {successful} documents to the knowledge base!")
+                        except Exception as e:
+                            st.error(f"Error processing files: {str(e)}")
+                    else:
+                        st.error("❌ Document store is not initialized properly")
+                        st.info("Try reloading the page and initializing RAG again.")
+        
+        # Document management
+        render_rag_document_manager()
+        
+        # Show document count
+        if rag_initialized and "document_store" in st.session_state and st.session_state.document_store is not None:
+            try:
+                doc_count = st.session_state.document_store.get_document_count()
+                st.info(f"📊 Knowledge base contains {doc_count} document chunks")
+            except Exception as e:
+                st.warning(f"Unable to get document count: {str(e)}")
 
 # ---------------------------------------------------
 # Main UI Layout
@@ -326,13 +405,23 @@ render_header()
 render_theme_toggle()
 
 # --- Sidebar toggle buttons BELOW theme toggle ---
-sidebar_toggle_col1, sidebar_toggle_col2 = st.columns([1, 1], gap="small")
+sidebar_toggle_col1, sidebar_toggle_col2, sidebar_toggle_col3 = st.columns([1, 1, 1], gap="small")
 with sidebar_toggle_col1:
-    if st.button("🤖 AI Configuration", use_container_width=True, key="sidebar_ai_btn_main"):
+    if st.button("🤖 AI Configuration", use_container_width=True, key="sidebar_ai_btn_header"):
         st.session_state.sidebar_mode = "ai_config"
 with sidebar_toggle_col2:
-    if st.button("💬 Support Chatbot", use_container_width=True, key="sidebar_chat_btn_main"):
+    if st.button("💬 Support Chatbot", use_container_width=True, key="sidebar_chat_btn_header"):
         st.session_state.sidebar_mode = "chat"
+with sidebar_toggle_col3:
+    if st.button("📚 Knowledge Base", use_container_width=True, key="sidebar_rag_btn_header"):
+        st.session_state.sidebar_mode = "rag_config"
+        # Initialize RAG components if not already done
+        try:
+            if not initialize_rag():
+                st.error("Failed to initialize RAG. Some features may not work.")
+        except Exception as e:
+            st.error(f"Error initializing RAG: {str(e)}")
+            st.info("Please install required packages: pip install langchain-community chromadb")
 
 # --- Reset Pipeline Button BELOW the title and toggle buttons ---
 reset_col = st.container()

@@ -1,7 +1,7 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
 from typing_extensions import override
 
-from langchain import PromptTemplate
+from langchain_core.prompts import PromptTemplate
 from langchain.chains.llm import LLMChain
 from BaseAgent import BaseAgent
 

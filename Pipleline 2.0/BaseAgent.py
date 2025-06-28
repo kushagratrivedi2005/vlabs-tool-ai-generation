@@ -1,5 +1,6 @@
 import dotenv
-from langchain.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate
+from langchain_core.runnables import RunnablePassthrough
 from langchain.chains import LLMChain
 from langchain_google_genai import ChatGoogleGenerativeAI
 
@@ -15,12 +16,34 @@ class BaseAgent:
         self.role = role
         self.basic_prompt = basic_prompt
         self.context = context
+        self.rag_enabled = False
+        self.document_store = None
 
     def set_llm(self, llm):
         self.llm = llm
 
     def set_prompt_enhancer_llm(self, llm):
         self.prompt_enhancer_llm = llm
+        
+    def enable_rag(self, document_store):
+        """Enable RAG functionality with the given document store"""
+        self.rag_enabled = True
+        self.document_store = document_store
+        
+        # Import here to avoid circular imports
+        from rag.config import RAGConfig
+        self.rag_config = RAGConfig
+        return self
+        
+    def disable_rag(self):
+        """Disable RAG functionality"""
+        self.rag_enabled = False
+        return self
+        
+    def is_rag_enabled(self):
+        """Check if RAG is enabled"""
+        return self.rag_enabled and self.document_store is not None
+
     def enhance_prompt(self):
         if  self.prompt_enhancer_llm is None:
             raise ValueError("Prompt enhancer LLM is not set.")
@@ -39,20 +62,29 @@ class BaseAgent:
             template=enhanced_prompt_template
         )
 
-        chain = LLMChain(llm=self.prompt_enhancer_llm, prompt=prompt)
+        # Use RunnableSequence: prompt | llm
+        chain = prompt | self.prompt_enhancer_llm
         enhanced_prompt = chain.invoke({
             "role": self.role,
             "basic_prompt": self.basic_prompt,
             "context": self.context
         })
-        self.enhanced_prompt = enhanced_prompt['text']
+        # If the output is a dict with 'text', extract it; else use as is
+        if isinstance(enhanced_prompt, dict) and 'text' in enhanced_prompt:
+            self.enhanced_prompt = enhanced_prompt['text']
+        else:
+            self.enhanced_prompt = enhanced_prompt
         return self.enhanced_prompt
 
     def get_output(self):
         if not self.llm:
             raise ValueError("LLM is not set.")
 
-        # Use the enhanced prompt if available, else the basic one
+        # If RAG is enabled, use the RAG-enhanced output method
+        if self.is_rag_enabled():
+            return self.get_output_with_rag()
+            
+        # Standard output without RAG
         base_prompt = self.enhanced_prompt if self.enhanced_prompt else self.basic_prompt
 
         final_prompt_template = (
@@ -67,12 +99,46 @@ class BaseAgent:
             template=final_prompt_template
         )
 
-        chain = LLMChain(llm=self.llm, prompt=prompt)
-        return chain.invoke({
+        # Use RunnableSequence: prompt | llm
+        chain = prompt | self.llm
+        output = chain.invoke({
             "role": self.role,
             "context": self.context,
             "base_prompt": base_prompt
-        })['text']
+        })
+        # If the output is a dict with 'text', extract it; else use as is
+        if isinstance(output, dict) and 'text' in output:
+            return output['text']
+        return output
+        
+    def get_output_with_rag(self, user_query: str = None):
+        """Get output enhanced with RAG"""
+        if not self.llm:
+            raise ValueError("LLM is not set.")
+        
+        if not self.is_rag_enabled():
+            raise ValueError("RAG is not enabled.")
+        
+        # Import here to avoid circular imports
+        from rag.rag_agent import RAGAgent
+        
+        # Create a RAGAgent with the same configuration
+        rag_agent = RAGAgent(self.role, self.basic_prompt, self.document_store)
+        rag_agent.set_llm(self.llm)
+        
+        # Copy over all important state properties to preserve agent state
+        rag_agent.context = self.context
+        rag_agent.enhanced_prompt = self.enhanced_prompt
+        
+        # Copy over any additional properties that may have been set
+        if hasattr(self, 'rag_config'):
+            rag_agent.config = self.rag_config
+        
+        if hasattr(self, 'prompt_enhancer_llm'):
+            rag_agent.set_prompt_enhancer_llm(self.prompt_enhancer_llm)
+        
+        # Get output with RAG
+        return rag_agent.get_output_with_rag(user_query)
 
 
 if __name__ == "__main__":

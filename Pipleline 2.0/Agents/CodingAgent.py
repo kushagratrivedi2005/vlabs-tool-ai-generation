@@ -43,6 +43,7 @@ class CodingAgent(BaseAgent):
             "{coding_instructions}\n"
             "Code till Now\n"
             "{previous_code_module}\n"
+            "\nIMPORTANT: DO NOT include code block markers like ```html or ``` around your code. Return ONLY the raw HTML/CSS/JavaScript code."
         )
 
         prompt = PromptTemplate(
@@ -50,14 +51,18 @@ class CodingAgent(BaseAgent):
             template=final_prompt_template
         )
 
-        chain = LLMChain(llm=self.llm, prompt=prompt)
-        return chain.invoke({
+        # Fix: Create the sequence first, then invoke it
+        chain = prompt | self.llm  
+        output = chain.invoke({
             "role": self.role,
             "context": self.context,
             "base_prompt": base_prompt,
             "coding_instructions": self.coding_instructions,
             "previous_code_module": self.previous_code_module
-        })['text']
+        })
+        
+        # Use the _extract_text_content method from BaseAgent
+        return self._extract_text_content(output)
 
 
 if __name__ == "__main__":

@@ -19,6 +19,26 @@ class BaseAgent:
         self.rag_enabled = False
         self.document_store = None
 
+    def _extract_text_content(self, response):
+        """
+        Extract text content from various response types (string, dict, AIMessage, etc.)
+        This centralizes the text extraction logic for all agents.
+        """
+        # If it's a string already, return it
+        if isinstance(response, str):
+            return response
+        
+        # If it's a dict with 'text' key
+        if isinstance(response, dict) and 'text' in response:
+            return response['text']
+        
+        # If it's a LangChain message object with content attribute
+        if hasattr(response, 'content'):
+            return response.content
+        
+        # If it has a __str__ method, use it as a fallback
+        return str(response)
+
     def set_llm(self, llm):
         self.llm = llm
 
@@ -64,16 +84,13 @@ class BaseAgent:
 
         # Use RunnableSequence: prompt | llm
         chain = prompt | self.prompt_enhancer_llm
-        enhanced_prompt = chain.invoke({
+        enhanced_prompt_result = chain.invoke({
             "role": self.role,
             "basic_prompt": self.basic_prompt,
             "context": self.context
         })
-        # If the output is a dict with 'text', extract it; else use as is
-        if isinstance(enhanced_prompt, dict) and 'text' in enhanced_prompt:
-            self.enhanced_prompt = enhanced_prompt['text']
-        else:
-            self.enhanced_prompt = enhanced_prompt
+        # Extract text content properly
+        self.enhanced_prompt = self._extract_text_content(enhanced_prompt_result)
         return self.enhanced_prompt
 
     def get_output(self):
@@ -106,10 +123,8 @@ class BaseAgent:
             "context": self.context,
             "base_prompt": base_prompt
         })
-        # If the output is a dict with 'text', extract it; else use as is
-        if isinstance(output, dict) and 'text' in output:
-            return output['text']
-        return output
+        # Extract text content properly
+        return self._extract_text_content(output)
         
     def get_output_with_rag(self, user_query: str = None):
         """Get output enhanced with RAG"""

@@ -227,6 +227,13 @@ def start_http_server(directory, port=8000):
     class Handler(http.server.SimpleHTTPRequestHandler):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, directory=directory, **kwargs)
+            
+        def log_message(self, format, *args):
+            # Enhanced logging to help debug issues
+            if args and len(args) > 0:
+                request_path = args[0].split()[1] if len(args[0].split()) > 1 else "unknown"
+                print(f"Server request: {request_path} - {args}")
+            super().log_message(format, *args)
     
     try:
         # Test if port is available
@@ -243,6 +250,7 @@ def start_http_server(directory, port=8000):
         server_thread.daemon = True  # Thread will close when main program exits
         server_thread.start()
         
+        st.success(f"✅ Preview server started at http://localhost:{port}")
         st.session_state.server_started = True
         return True
         
@@ -253,16 +261,60 @@ def start_http_server(directory, port=8000):
         st.error(f"Server error: {str(e)}")
         return False
 
+def clean_code_output(code_content):
+    """
+    Clean HTML code by removing markdown code fences and other artifacts
+    """
+    if not code_content:
+        return ""
+    
+    # Remove common markdown code block markers
+    code_content = code_content.strip()
+    
+    # Remove ```html or ``` markers at beginning and end
+    code_patterns = [
+        r'^```html\s*', r'^```\s*', r'\s*```$',  # Basic markdown code fences
+        r'^<pre><code[^>]*>', r'</code></pre>$',  # HTML code block markers
+        r'^<code[^>]*>', r'</code>$'              # HTML inline code markers
+    ]
+    
+    import re
+    for pattern in code_patterns:
+        code_content = re.sub(pattern, '', code_content, flags=re.MULTILINE)
+    
+    # Ensure proper HTML structure
+    if not code_content.lower().strip().startswith('<!doctype') and not code_content.lower().strip().startswith('<html'):
+        # If the content is just HTML fragment without proper structure, wrap it
+        if '<body' not in code_content.lower():
+            code_content = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Lab</title>
+</head>
+<body>
+{code_content}
+</body>
+</html>
+"""
+    
+    return code_content
+
 def save_and_serve_code(code_content):
     """Save code to file and start server if needed"""
     try:
+        # Clean the code content
+        cleaned_code = clean_code_output(code_content)
+        
         # Get the directory of the current file
         current_dir = Path(__file__).parent
         code_file_path = current_dir / "code.html"
         
         # Save the code to file
         with open(code_file_path, "w", encoding="utf-8") as f:
-            f.write(code_content)
+            f.write(cleaned_code)
         
         # Start the server if not already running
         if start_http_server(current_dir):

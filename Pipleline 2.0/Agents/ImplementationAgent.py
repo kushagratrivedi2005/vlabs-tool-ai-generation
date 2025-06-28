@@ -1,5 +1,4 @@
 import PyPDF2
-from langchain.chains.llm import LLMChain
 from langchain_core.prompts import PromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 
@@ -18,13 +17,32 @@ class ImplementationAgent(BaseAgent):
 
     approved_requirements = None
 
+    def _extract_text_content(self, response):
+        """
+        Extract text content from various response types (string, dict, AIMessage, etc.)
+        """
+        # If it's a string already, return it
+        if isinstance(response, str):
+            return response
+        
+        # If it's a dict with 'text' key
+        if isinstance(response, dict) and 'text' in response:
+            return response['text']
+        
+        # If it's a LangChain message object
+        if hasattr(response, 'content'):
+            return response.content
+        
+        # If it has __str__ method, use it as a fallback
+        return str(response)
+
     def __init__(self, approved_requirements):
-        self.approved_requirements = approved_requirements.strip() if approved_requirements else ""
+        # Extract text content from the approved_requirements object
+        self.approved_requirements = self._extract_text_content(approved_requirements).strip() if approved_requirements else ""
         # Format the prompt with the approved requirements.
         super(ImplementationAgent, self).__init__(self.role, basic_prompt=self.basic_prompt_template, context=None)
 
     def get_output(self):
-
         if not self.llm:
             raise ValueError("LLM is not set.")
 
@@ -39,13 +57,16 @@ class ImplementationAgent(BaseAgent):
             template=final_prompt_template
         )
 
-        chain = LLMChain(llm=self.llm, prompt=prompt)
+        # Fix: Create the sequence first, then invoke it
+        chain = prompt | self.llm
         output = chain.invoke({
             "role": self.role,
             "context": self.approved_requirements,
             "prompt": self.enhanced_prompt if self.enhanced_prompt else self.basic_prompt
         })
-        return output['text']
+        
+        # Use the _extract_text_content method from BaseAgent
+        return self._extract_text_content(output)
 
 
 if __name__ == "__main__":

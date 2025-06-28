@@ -45,11 +45,15 @@ class HumanReviewAgentForRequirement(BaseAgent):
             template=final_prompt_template
         )
 
-        chain = LLMChain(llm=self.llm, prompt=prompt)
-        return chain.invoke({
+        # Fix: Create the sequence first, then invoke it
+        chain = prompt | self.llm
+        output = chain.invoke({
             "role": self.role,
             "context": self.context,
             "base_prompt": base_prompt,
             "current_requirements": self.current_requirements,
             "review": self.review
-        })['text']
+        })
+        
+        # Use the _extract_text_content method from BaseAgent
+        return self._extract_text_content(output)

@@ -20,6 +20,25 @@ class RAGAgent(BaseAgent):
         self.retrieved_docs = []
         self.config = RAGConfig()  # Instantiate as object instead of using class directly
     
+    def _extract_text_content(self, response):
+        """
+        Extract text content from various response types (string, dict, AIMessage, etc.)
+        """
+        # If it's a string already, return it
+        if isinstance(response, str):
+            return response
+        
+        # If it's a dict with 'text' key
+        if isinstance(response, dict) and 'text' in response:
+            return response['text']
+        
+        # If it's a LangChain message object
+        if hasattr(response, 'content'):
+            return response.content
+        
+        # If it has __str__ method, use it as a fallback
+        return str(response)
+    
     def reformulate_query(self, query: str) -> str:
         """
         Reformulate the query to improve retrieval quality
@@ -44,14 +63,14 @@ class RAGAgent(BaseAgent):
         chain = prompt | self.llm
         result = chain.invoke({"query": query})
         
-        # If the output is a dict with 'text', extract it; else use as is
-        reformulated_query = result['text'] if isinstance(result, dict) and 'text' in result else result
+        # Extract the text content from the result (handles AIMessage and other object types)
+        reformulated_query = self._extract_text_content(result)
         
         # Fall back to original query if reformulation failed or returned empty
-        if not reformulated_query or len(reformulated_query.strip()) < 3:
+        if not reformulated_query or len(reformulated_query.strip() if hasattr(reformulated_query, 'strip') else reformulated_query) < 3:
             return query
             
-        return reformulated_query.strip()
+        return reformulated_query.strip() if hasattr(reformulated_query, 'strip') else reformulated_query
     
     def search_knowledge_base(self, query: str, n_results: int = None, filter_dict: Dict = None) -> List[Dict]:
         """Search the knowledge base for relevant information"""
@@ -153,7 +172,6 @@ class RAGAgent(BaseAgent):
             "enhanced_context": enhanced_context,
             "base_prompt": base_prompt
         })
-        # If the output is a dict with 'text', extract it; else use as is
-        if isinstance(output, dict) and 'text' in output:
-            return output['text']
-        return output
+        
+        # Extract text content from the output (handles AIMessage and other object types)
+        return self._extract_text_content(output)

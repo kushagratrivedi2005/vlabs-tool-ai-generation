@@ -42,6 +42,7 @@ class IntegrationAgent(BaseAgent):
             "{previous_code_module}\n"
             "Current Code Module:\n"
             "{current_code_module}\n"
+            "\nIMPORTANT: DO NOT include code block markers like ```html or ```python in your response. Provide the raw HTML code only."
         )
 
         prompt = PromptTemplate(
@@ -49,14 +50,18 @@ class IntegrationAgent(BaseAgent):
             template=final_prompt_template
         )
 
-        chain = LLMChain(llm=self.llm, prompt=prompt)
-        return chain.invoke({
+        # Fix: Create the sequence first, then invoke it
+        chain = prompt | self.llm
+        output = chain.invoke({
             "role": self.role,
             "context": self.context,
             "base_prompt": base_prompt,
             "previous_code_module": self.previous_code_module,
             "current_code_module": self.current_code_module
-        })['text']
+        })
+        
+        # Use the _extract_text_content method from BaseAgent
+        return self._extract_text_content(output)
 
 if __name__ == "__main__":
     code_module = """

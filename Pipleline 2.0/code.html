@@ -1,1193 +1,488 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OS Virtual Lab: Processes & Context Switching</title>
+    <title>OS Virtual Lab</title>
     <style>
-        /* --- Main Website General Styling --- */
+        /* General Styles */
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #f4f7f6;
+            background-color: #f4f4f4;
             color: #333;
-            line-height: 1.6;
-        }
-        .container-main {
-            max-width: 1200px;
-            margin: 20px auto;
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            overflow: hidden; /* Ensures border-radius applies to children */
-        }
-        header {
-            background-color: #2c3e50;
-            color: white;
-            padding: 20px;
-            text-align: center;
-            border-top-left-radius: 8px;
-            border-top-right-radius: 8px;
-        }
-        header h1 {
-            margin: 0;
-            font-size: 2.2em;
-        }
-        header p {
-            margin-top: 5px;
-            font-size: 1.1em;
-            opacity: 0.9;
         }
 
-        /* --- Tab Navigation Styling --- */
-        .tabs {
-            display: flex;
-            flex-wrap: wrap; /* Allow tabs to wrap on smaller screens */
-            background-color: #34495e;
-            border-bottom: 2px solid #2c3e50;
+        h1, h2, h3 {
+            color: #0056b3;
         }
-        .tab-button {
-            flex-grow: 1; /* Distribute space evenly */
-            padding: 15px 20px;
-            background-color: #34495e;
-            color: white;
+
+        /* Tab Styles */
+        .tab {
+            overflow: hidden;
+            border: 1px solid #ccc;
+            background-color: #f1f1f1;
+        }
+
+        .tab button {
+            background-color: inherit;
+            float: left;
             border: none;
+            outline: none;
             cursor: pointer;
-            font-size: 1em;
-            transition: background-color 0.3s, color 0.3s;
-            text-align: center;
-            white-space: nowrap; /* Prevent text wrapping within a tab button */
-        }
-        .tab-button:hover {
-            background-color: #4a627a;
-        }
-        .tab-button.active {
-            background-color: #1abc9c; /* Active tab color */
-            color: white;
-            font-weight: bold;
+            padding: 14px 16px;
+            transition: 0.3s;
+            font-size: 17px;
         }
 
-        /* --- Tab Content Styling --- */
-        .tab-content {
-            padding: 30px;
-            display: none; /* Hidden by default */
+        .tab button:hover {
+            background-color: #ddd;
         }
-        .tab-content.active {
-            display: block; /* Show active tab content */
+
+        .tab button.active {
+            background-color: #ccc;
         }
-        .tab-content h2 {
-            color: #2c3e50;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 10px;
+
+        .tabcontent {
+            display: none;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-top: none;
+        }
+
+        /* Simulation Styles */
+        .process {
+            border: 1px solid black;
+            padding: 5px;
+            margin: 5px;
+        }
+
+        #pcb-display {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+
+        #pcb-display h3 {
             margin-top: 0;
         }
-        .tab-content h3 {
-            color: #34495e;
-            margin-top: 25px;
-        }
-        .tab-content ul, .tab-content ol {
-            margin-left: 20px;
-            padding: 0;
-        }
-        .tab-content li {
-            margin-bottom: 8px;
-        }
-        .tab-content p {
-            margin-bottom: 10px;
+
+        #pcb-display p {
+            margin-bottom: 5px;
         }
 
-        /* --- Quiz Specific Styling --- */
+        #pcb-display input[type="number"] {
+            width: 60px;
+        }
+
+        #log {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            height: 100px;
+            overflow-y: scroll;
+        }
+
+        #log p {
+            margin-bottom: 5px;
+        }
+
+        /* Quiz Styles */
         .quiz-question {
-            margin-bottom: 20px;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            background-color: #f9f9f9;
+            margin-bottom: 15px;
         }
-        .quiz-question p {
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
+
         .quiz-options label {
             display: block;
-            margin-bottom: 8px;
-            cursor: pointer;
+            margin-bottom: 5px;
         }
-        .quiz-options input[type="radio"] {
-            margin-right: 8px;
-        }
+
         .quiz-feedback {
-            margin-top: 10px;
-            padding: 8px;
-            border-radius: 4px;
             font-weight: bold;
         }
-        .quiz-feedback.correct {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        .quiz-feedback.incorrect {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-        #quiz-submit-btn {
-            background-color: #28a745;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1em;
-            transition: background-color 0.2s;
-            margin-top: 20px;
-        }
-        #quiz-submit-btn:hover {
-            background-color: #218838;
-        }
+
         #quiz-results {
             margin-top: 20px;
-            padding: 15px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            background-color: #e9ecef;
-            display: none; /* Hidden until quiz submitted */
-        }
-        #quiz-results p {
-            margin: 5px 0;
-        }
-        #quiz-results .score {
             font-size: 1.2em;
-            font-weight: bold;
-            color: #007bff;
         }
 
-        /* --- Simulation CSS (Copied from provided code, scoped with .simulation-content) --- */
-        .simulation-content { /* Wrapper class for the simulation content */
-            padding: 0; /* Remove padding here as tab-content already has it */
-        }
-        .simulation-content h1, .simulation-content h2, .simulation-content h3, .simulation-content h4 {
-            color: #2c3e50;
-        }
-        .simulation-content .container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            max-width: 100%; /* Adjust to fit within the tab-content */
-            margin: 0 auto;
-        }
-        .simulation-content .panel {
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            padding: 20px;
-        }
-
-        /* Controls section styling */
-        .simulation-content #controls {
-            flex: 1 1 100%;
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        .simulation-content button {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1em;
-            transition: background-color 0.2s;
-        }
-        .simulation-content button:hover:not(:disabled) {
-            background-color: #2980b9;
-        }
-        .simulation-content button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-
-        /* CPU Registers display styling */
-        .simulation-content #cpu-registers {
-            flex: 0 0 200px;
-            min-width: 180px;
-        }
-        .simulation-content #cpu-registers p {
-            margin: 5px 0;
-            font-family: 'Courier New', monospace;
-        }
-
-        /* Process List and individual process card styling */
-        .simulation-content #process-list {
-            flex: 2 1 400px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            align-content: flex-start; /* Aligns items to the start of the cross axis */
-        }
-        .simulation-content .process-card {
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 15px;
-            width: 180px;
-            text-align: center;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .simulation-content .process-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-        }
-        .simulation-content .process-card h3 {
-            margin-top: 0;
-            font-size: 1.1em;
-        }
-        .simulation-content .process-card p {
-            margin: 5px 0;
-            font-size: 0.9em;
-        }
-        .simulation-content .process-card .state-indicator {
-            font-weight: bold;
-            padding: 3px 8px;
-            border-radius: 4px;
-            display: inline-block;
-            margin-top: 5px;
-        }
-        /* State-specific colors for process cards */
-        .simulation-content .process-card.state-new .state-indicator { background-color: #ecf0f1; color: #7f8c8d; }
-        .simulation-content .process-card.state-ready .state-indicator { background-color: #2ecc71; color: white; }
-        .simulation-content .process-card.state-running .state-indicator { background-color: #e74c3c; color: white; animation: pulse 1s infinite alternate; }
-        .simulation-content .process-card.state-waiting .state-indicator { background-color: #f1c40f; color: #333; }
-        .simulation-content .process-card.state-terminated .state-indicator { background-color: #95a5a6; color: white; }
-        /* Visual cues for running and selected processes */
-        .simulation-content .process-card.running-now {
-            border-color: #e74c3c;
-            box-shadow: 0 0 10px rgba(231, 76, 60, 0.5);
-        }
-        .simulation-content .process-card.selected {
-            border-color: #3498db;
-            box-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
-        }
-        .simulation-content .process-actions button {
-            margin: 5px 2px;
-            padding: 5px 8px;
-            font-size: 0.8em;
-        }
-
-        /* Process Details panel styling */
-        .simulation-content #process-details {
-            flex: 1 1 300px;
-            min-width: 280px;
-        }
-        .simulation-content #pcb-display ul {
-            list-style: none;
-            padding: 0;
-            margin: 10px 0;
-        }
-        .simulation-content #pcb-display li {
-            margin-bottom: 3px;
-            font-family: 'Courier New', monospace;
-        }
-        .simulation-content #kernel-stack-display {
-            border: 1px solid #eee;
-            padding: 10px;
-            min-height: 100px;
-            background-color: #f9f9f9;
-            overflow-y: auto;
-            max-height: 200px;
-        }
-        .simulation-content #kernel-stack-display ul {
-            list-style: decimal-reverse; /* Shows stack top at bottom with higher numbers */
-            padding-left: 25px;
-            margin: 0;
-        }
-        .simulation-content #kernel-stack-display li {
-            font-family: 'Courier New', monospace;
-            padding: 2px 0;
-            border-bottom: 1px dotted #eee;
-        }
-        .simulation-content #kernel-stack-display li:last-child {
-            border-bottom: none;
-        }
-
-        /* Log Display styling */
-        .simulation-content #log-display {
-            flex: 1 1 100%;
-            min-height: 150px;
-            max-height: 300px;
-            overflow-y: auto;
-            background-color: #ecf0f1;
-            border: 1px solid #ddd;
-            padding: 10px;
-            font-size: 0.9em;
-            font-family: 'Courier New', monospace;
-        }
-        .simulation-content #log-display p {
-            margin: 2px 0;
-            border-bottom: 1px dotted #ccc;
-            padding-bottom: 2px;
-        }
-        .simulation-content #log-display p:last-child {
-            border-bottom: none;
-        }
-
-        /* Validation Results styling */
-        .simulation-content #validation-results {
-            flex: 1 1 100%;
-            margin-top: 10px;
-            padding: 15px;
-            border: 1px solid #ccc;
-            background-color: #fdfdfd;
-        }
-        .simulation-content #validation-results p {
-            margin: 5px 0;
-        }
-        .simulation-content #validation-results p.success {
-            color: green;
-        }
-        .simulation-content #validation-results p.warning {
-            color: orange;
-        }
-        .simulation-content #validation-results p.error {
-            color: red;
-        }
-
-        /* Keyframe animation for running process */
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            100% { transform: scale(1.02); }
-        }
-
-        /* --- Responsive adjustments --- */
-        @media (max-width: 768px) {
-            .container-main {
-                margin: 10px;
-            }
-            .tabs {
-                flex-direction: column; /* Stack tabs vertically */
-            }
-            .tab-button {
-                flex-grow: unset; /* Remove flex-grow */
-                width: 100%; /* Full width buttons */
-                border-bottom: 1px solid #2c3e50;
-            }
-            .tab-button:last-child {
-                border-bottom: none;
-            }
-            .tab-content {
-                padding: 20px;
-            }
-            .simulation-content .container {
-                flex-direction: column; /* Stack simulation panels vertically */
-            }
-            .simulation-content #cpu-registers,
-            .simulation-content #process-list,
-            .simulation-content #process-details,
-            .simulation-content #log-display,
-            .simulation-content #validation-results {
-                flex: 1 1 100%; /* Take full width */
-                min-width: unset; /* Remove min-width constraints */
-            }
-            .simulation-content #controls {
-                flex-wrap: wrap; /* Allow control buttons to wrap */
-            }
-            .simulation-content button {
-                flex: 1 1 auto; /* Allow buttons to grow/shrink */
-                min-width: 120px; /* Ensure buttons don't get too small */
-            }
+        /* Accessibility */
+        button:focus,
+        input:focus {
+            outline: 2px solid #007bff;
         }
     </style>
 </head>
 <body>
-    <div class="container-main">
-        <header>
-            <h1>OS Virtual Lab: Processes & Context Switching</h1>
-            <p>An interactive learning environment for Operating Systems concepts.</p>
-        </header>
 
-        <nav class="tabs">
-            <button class="tab-button active" data-tab="intro">Introduction</button>
-            <button class="tab-button" data-tab="aim">Aim</button>
-            <button class="tab-button" data-tab="theory">Theory</button>
-            <button class="tab-button" data-tab="objective">Objective</button>
-            <button class="tab-button" data-tab="procedure">Procedure</button>
-            <button class="tab-button" data-tab="simulation">Simulation</button>
-            <button class="tab-button" data-tab="pretest">Pretest Questions</button>
-        </nav>
+    <h1>OS Virtual Lab</h1>
 
-        <div id="intro" class="tab-content active">
-            <h2>Welcome to the OS Virtual Lab!</h2>
-            <p>This interactive lab is designed to help you understand fundamental concepts of Operating Systems, specifically focusing on <strong>processes</strong> and <strong>context switching</strong>.</p>
-            <p>You will explore how an operating system manages multiple programs concurrently, how it switches between them, and the critical data structures involved like the Process Control Block (PCB) and Kernel Stack.</p>
-            <p>Understanding these concepts is crucial for anyone studying computer science, as they form the bedrock of how modern operating systems function and manage system resources efficiently.</p>
-            <p><strong>Ready to dive in?</strong> Navigate through the tabs above to learn the theory, understand the lab objectives, follow the procedure, and finally, interact with the simulation!</p>
+    <div class="tab">
+        <button class="tablinks" onclick="openTab(event, 'Home')" id="defaultOpen">Introduction/Home</button>
+        <button class="tablinks" onclick="openTab(event, 'Aim')">Aim</button>
+        <button class="tablinks" onclick="openTab(event, 'Theory')">Theory</button>
+        <button class="tablinks" onclick="openTab(event, 'Objective')">Objective</button>
+        <button class="tablinks" onclick="openTab(event, 'Procedure')">Procedure</button>
+        <button class="tablinks" onclick="openTab(event, 'Simulation')">Simulation</button>
+        <button class="tablinks" onclick="openTab(event, 'Pretest')">Pretest Questions</button>
+    </div>
+
+    <div id="Home" class="tabcontent">
+        <h2>Introduction/Home</h2>
+        <p>Welcome to the Operating Systems Virtual Lab! This interactive website is designed to help you understand the fundamental concepts of operating systems, particularly process management. An operating system (OS) is the software that manages computer hardware and software resources and provides common services for computer programs. Process management is a key function of the OS, involving the creation, scheduling, and termination of processes.</p>
+        <p>This lab focuses on visualizing process states, the Process Control Block (PCB), and the context switching mechanism. Through interactive simulations and pretest questions, you will gain a deeper understanding of how operating systems manage processes.</p>
+    </div>
+
+    <div id="Aim" class="tabcontent">
+        <h2>Aim</h2>
+        <p>To understand and visualize the process of context switching in an operating system.</p>
+    </div>
+
+    <div id="Theory" class="tabcontent">
+        <h2>Theory</h2>
+        <h3>Processes and Process States</h3>
+        <p>A process is an instance of a program in execution. Processes go through different states during their lifecycle:</p>
+        <ul>
+            <li><b>Ready:</b> The process is waiting to be assigned to a processor.</li>
+            <li><b>Running:</b> The process is being executed by the processor.</li>
+            <li><b>Waiting:</b> The process is waiting for some event to occur (e.g., I/O completion).</li>
+            <li><b>Terminated:</b> The process has completed its execution.</li>
+        </ul>
+
+        <h3>Process Control Block (PCB)</h3>
+        <p>The Process Control Block (PCB) is a data structure used by the operating system to store all the information about a process. Key fields include:</p>
+        <ul>
+            <li><b>PID (Process ID):</b> A unique identifier for the process.</li>
+            <li><b>State:</b> The current state of the process (Ready, Running, Waiting, Terminated).</li>
+            <li><b>PC (Program Counter):</b> The address of the next instruction to be executed.</li>
+            <li><b>Registers:</b> The values of the CPU registers (e.g., A, B, C, D) at a given point in time.</li>
+            <li><b>Memory Address:</b> The base address of the memory allocated to the process.</li>
+            <li><b>Priority:</b> The priority of the process, used for scheduling.</li>
+        </ul>
+
+        <h3>Context Switching</h3>
+        <p>Context switching is the process of saving the state of the current process and loading the state of another process. This allows the OS to switch between processes quickly, giving the illusion of concurrency. The steps involved are:</p>
+        <ol>
+            <li>Save the state of the current process (PC, registers, etc.) into its PCB.</li>
+            <li>Select the next process to run.</li>
+            <li>Load the state of the next process from its PCB.</li>
+            <li>Start executing the next process.</li>
+        </ol>
+
+        <h3>Scheduling Algorithms</h3>
+        <p>Scheduling algorithms determine which process should be executed next. Common algorithms include:</p>
+        <ul>
+            <li><b>First-Come, First-Served (FCFS):</b> Processes are executed in the order they arrive.</li>
+            <li><b>Shortest Job First (SJF):</b> Processes with the shortest burst time are executed first.</li>
+            <li><b>Priority Scheduling:</b> Processes with higher priority are executed first.</li>
+        </ul>
+    </div>
+
+    <div id="Objective" class="tabcontent">
+        <h2>Objective</h2>
+        <ul>
+            <li>By the end of this lab, you will be able to create processes and observe their state transitions.</li>
+            <li>You will be able to identify the key components of a Process Control Block (PCB).</li>
+            <li>You will be able to manually trigger a context switch and observe the changes in the PCB.</li>
+        </ul>
+    </div>
+
+    <div id="Procedure" class="tabcontent">
+        <h2>Procedure</h2>
+        <ol>
+            <li>Click the 'Create Process' button to generate a new process.</li>
+            <li>Observe the process appear in the process visualization area.</li>
+            <li>Click the 'Context Switch' button to switch to the next ready process.</li>
+            <li>Examine the PCB display to see the current state of the running process.</li>
+            <li>Use the input fields in the PCB display to validate your understanding of the PCB contents.</li>
+        </ol>
+    </div>
+
+    <div id="Simulation" class="tabcontent">
+        <h2>Simulation</h2>
+        <div id="process-visualization">
+            <!-- Processes will be displayed here -->
         </div>
 
-        <div id="aim" class="tab-content">
-            <h2>Aim of the Lab</h2>
-            <p>Upon completing this virtual lab, students will be able to:</p>
-            <ul>
-                <li>To understand the different states of a process (New, Ready, Running, Waiting, Terminated).</li>
-                <li>To visualize the mechanism of context switching between processes.</li>
-                <li>To comprehend the role and structure of the Process Control Block (PCB) and Kernel Stack.</li>
-                <li>To observe how CPU registers change during process execution and context switching.</li>
-                <li>To gain practical insight into basic CPU scheduling (e.g., Round Robin).</li>
-            </ul>
+        <div id="pcb-display">
+            <!-- PCB details will be displayed here -->
         </div>
 
-        <div id="theory" class="tab-content">
-            <h2>Theory: Processes & Context Switching</h2>
-
-            <h3>Processes</h3>
-            <p>A <strong>process</strong> is an instance of a computer program that is being executed. It's more than just the program code; it includes the program counter, registers, variables, and the stack. Processes go through various states during their lifecycle:</p>
-            <ul>
-                <li><strong>New:</strong> The process is being created.</li>
-                <li><strong>Ready:</strong> The process is waiting to be assigned to a processor.</li>
-                <li><strong>Running:</strong> Instructions are being executed.</li>
-                <li><strong>Waiting:</strong> The process is waiting for some event to occur (e.g., I/O completion, signal).</li>
-                <li><strong>Terminated:</strong> The process has finished execution.</li>
-            </ul>
-
-            <h3>Process Control Block (PCB)</h3>
-            <p>The <strong>Process Control Block (PCB)</strong> is a data structure in the operating system kernel that contains information needed to manage a process. Each process has its own PCB, which acts as its "identity card." Key components typically include:</p>
-            <ul>
-                <li><strong>Process ID (PID):</strong> Unique identifier for the process.</li>
-                <li><strong>Process State:</strong> Current state of the process (New, Ready, Running, etc.).</li>
-                <li><strong>Program Counter (PC):</strong> The address of the next instruction to be executed for this process.</li>
-                <li><strong>CPU Registers:</strong> Values of all CPU registers (e.g., AX, BX, CX, DX, SP) when the process was last running.</li>
-                <li><strong>Memory Management Information:</strong> Pointers to the process's page tables or segment tables.</li>
-                <li><strong>I/O Status Information:</strong> List of open files, I/O devices allocated to the process.</li>
-            </ul>
-
-            <h3>Kernel Stack</h3>
-            <p>The <strong>Kernel Stack</strong> is a separate stack maintained by the operating system for each process when it executes in kernel mode. It's used to save the context of the user process when a system call or interrupt occurs. This allows the kernel to perform its operations and then seamlessly return control to the user process by restoring its saved context.</p>
-
-            <h3>Context Switching</h3>
-            <p><strong>Context switching</strong> is the mechanism by which the operating system saves the state of the currently running process and loads the state of another process. This allows multiple processes to share a single CPU. The steps generally involve:</p>
-            <ol>
-                <li>The OS saves the context (CPU registers, program counter, stack pointer) of the currently running process into its PCB and/or Kernel Stack.</li>
-                <li>The OS loads the context of the next process to be run from its PCB into the CPU registers.</li>
-                <li>The CPU resumes execution from where the new process left off.</li>
-            </ol>
-            <p>Context switching is an overhead, as the system does no useful work while switching, but it is essential for multitasking.</p>
-
-            <h3>CPU Registers</h3>
-            <p>CPU registers are small, high-speed storage locations within the CPU that hold data and instructions currently being processed. Key registers relevant to processes include:</p>
-            <ul>
-                <li><strong>Program Counter (PC):</strong> Holds the memory address of the next instruction to be fetched.</li>
-                <li><strong>Stack Pointer (SP):</strong> Points to the top of the current stack.</li>
-                <li><strong>General-Purpose Registers (e.g., AX, BX, CX, DX):</strong> Used for temporary data storage and calculations.</li>
-            </ul>
-
-            <h3>CPU Scheduling (briefly)</h3>
-            <p><strong>CPU Scheduling</strong> is the process of deciding which of the ready processes should be given the CPU. A common algorithm is <strong>Round Robin</strong>, where each process is given a small unit of CPU time (a "time slice" or "quantum"). Once this time expires, the process is preempted and moved to the end of the ready queue, allowing the next process in the queue to run. This creates the illusion of concurrency.</p>
+        <div id="controls">
+            <button id="create-process">Create Process</button>
+            <button id="context-switch">Context Switch</button>
         </div>
 
-        <div id="objective" class="tab-content">
-            <h2>Lab Objectives: What You Will Do</h2>
-            <p>This section outlines the specific tasks and activities you are expected to perform within the simulation to achieve the learning aims:</p>
-            <ul>
-                <li>Create multiple processes and observe their initial state.</li>
-                <li>Manually dispatch processes to the CPU and track state changes.</li>
-                <li>Manually preempt a running process and analyze the context saving.</li>
-                <li>Utilize the automatic Round Robin scheduler to observe continuous context switching.</li>
-                <li>Inspect the PCB and Kernel Stack of selected processes at different stages.</li>
-                <li>Interpret the simulation log to understand the sequence of events.</li>
-                <li>Use the validation tool to check the consistency of context switching operations.</li>
-                <li>Answer pretest questions based on the theoretical concepts.</li>
-            </ul>
+        <div id="log">
+            <!-- Log messages will be displayed here -->
         </div>
+    </div>
 
-        <div id="procedure" class="tab-content">
-            <h2>Lab Procedure: Step-by-Step Guide</h2>
-            <p>Follow these steps to effectively utilize the OS Virtual Lab simulation:</p>
-            <ol>
-                <li>Navigate to the 'Simulation' tab.</li>
-                <li>Click 'Create New Process' multiple times to generate several processes.</li>
-                <li>Observe the 'Process List' and the initial 'New' state of processes.</li>
-                <li>Click the 'Dispatch' button on a 'Ready' process card. Note the changes in 'CPU Registers' and the process's state.</li>
-                <li>Click 'Preempt' on the running process. Observe the context saving in its PCB and Kernel Stack (viewable via 'View PCB').</li>
-                <li>Experiment with 'Start Auto Schedule' to see Round Robin in action.</li>
-                <li>Regularly check the 'Simulation Log' for event details and the 'Validation Results' for feedback.</li>
-                <li>After completing the simulation, proceed to the 'Pretest Questions' tab.</li>
-            </ol>
-        </div>
-
-        <div id="simulation" class="tab-content">
-            <!-- CRITICAL: This tab contains the HTML structure for the simulation.
-                 Its CSS and JavaScript are integrated into the main document's <style> and <script> blocks. -->
-            <div class="simulation-content">
-                <h1>OS Virtual Lab: Processes & Context Switching</h1>
-                <p>Explore the lifecycle of processes, manual and automatic context switching, and visualize process data structures (PCB, Kernel Stack).</p>
-
-                <div class="container">
-                    <!-- Controls Panel: Buttons for user interaction -->
-                    <div id="controls" class="panel">
-                        <button id="btn-create-process">Create New Process</button>
-                        <button id="btn-auto-schedule">Start Auto Schedule (Round Robin)</button>
-                        <button id="btn-validate-log">Validate Log</button>
-                    </div>
-
-                    <!-- CPU Registers Panel: Displays simulated CPU state -->
-                    <div id="cpu-registers" class="panel">
-                        <h4>Simulated CPU Registers</h4>
-                        <p>PC: 0x0000</p>
-                        <p>AX: 0x0000</p>
-                        <p>BX: 0x0000</p>
-                        <p>CX: 0x0000</p>
-                        <p>DX: 0x0000</p>
-                        <p>SP: 0x0000</p>
-                    </div>
-
-                    <!-- Process List Panel: Dynamically displays all created processes -->
-                    <div id="process-list" class="panel">
-                        <h2>Processes</h2>
-                        <p>No processes created yet.</p>
-                        <!-- Process cards will be dynamically inserted here by JavaScript -->
-                    </div>
-
-                    <!-- Process Details Panel: Shows PCB and Kernel Stack of a selected process -->
-                    <div id="process-details" class="panel">
-                        <h2>Process Details</h2>
-                        <p>Select a process from the list to view its PCB and Kernel Stack.</p>
-                        <!-- PCB and Kernel Stack details will be dynamically inserted here by JavaScript -->
-                    </div>
-
-                    <!-- Simulation Log Panel: Records all significant events and user actions -->
-                    <div id="log-display" class="panel">
-                        <h2>Simulation Log</h2>
-                        <!-- Log entries will be dynamically inserted here by JavaScript -->
-                    </div>
-
-                    <!-- Validation Results Panel: Displays feedback on log consistency -->
-                    <div id="validation-results" class="panel">
-                        <h2>Validation Results</h2>
-                        <p>Click "Validate Log" to check the consistency of your actions.</p>
-                        <!-- Validation results will be dynamically inserted here by JavaScript -->
-                    </div>
+    <div id="Pretest" class="tabcontent">
+        <h2>Pretest Questions</h2>
+        <div id="quiz-container">
+            <div class="quiz-question">
+                <p>1. Which of the following is NOT a process state?</p>
+                <div class="quiz-options">
+                    <label><input type="radio" name="q1" value="a"> (a) Ready</label>
+                    <label><input type="radio" name="q1" value="b"> (b) Running</label>
+                    <label><input type="radio" name="q1" value="c"> (c) Blocked</label>
+                    <label><input type="radio" name="q1" value="d"> (d) Terminated</label>
                 </div>
+                <p id="q1-feedback" class="quiz-feedback"></p>
             </div>
-        </div>
 
-        <div id="pretest" class="tab-content">
-            <h2>Pretest Questions</h2>
-            <p>Test your understanding of the concepts covered in this lab. Select the best answer for each question.</p>
-            <div id="quiz-container">
-                <!-- Quiz questions will be dynamically loaded here by JavaScript -->
+            <div class="quiz-question">
+                <p>2. What does PCB stand for?</p>
+                <div class="quiz-options">
+                    <label><input type="radio" name="q2" value="a"> (a) Process Control Block</label>
+                    <label><input type="radio" name="q2" value="b"> (b) Program Communication Block</label>
+                    <label><input type="radio" name="q2" value="c"> (c) Process Communication Buffer</label>
+                    <label><input type="radio" name="q2" value="d"> (d) Program Control Buffer</label>
+                </div>
+                <p id="q2-feedback" class="quiz-feedback"></p>
             </div>
-            <button id="quiz-submit-btn">Submit Answers</button>
-            <div id="quiz-results">
-                <h3>Your Results:</h3>
-                <p class="score"></p>
-                <div id="quiz-individual-results"></div>
+
+            <div class="quiz-question">
+                <p>3. Which of the following is stored in the PCB?</p>
+                <div class="quiz-options">
+                    <label><input type="radio" name="q3" value="a"> (a) Process ID</label>
+                    <label><input type="radio" name="q3" value="b"> (b) Program Counter</label>
+                    <label><input type="radio" name="q3" value="c"> (c) Registers</label>
+                    <label><input type="radio" name="q3" value="d"> (d) All of the above</label>
+                </div>
+                <p id="q3-feedback" class="quiz-feedback"></p>
             </div>
+
+            <div class="quiz-question">
+                <p>4. What is context switching?</p>
+                <div class="quiz-options">
+                    <label><input type="radio" name="q4" value="a"> (a) Switching between different applications</label>
+                    <label><input type="radio" name="q4" value="b"> (b) Saving the state of one process and loading the state of another</label>
+                    <label><input type="radio" name="q4" value="c"> (c) Creating a new process</label>
+                    <label><input type="radio" name="q4" value="d"> (d) Terminating a process</label>
+                </div>
+                <p id="q4-feedback" class="quiz-feedback"></p>
+            </div>
+
+            <div class="quiz-question">
+                <p>5. Which process state indicates that the process is waiting for an event to occur?</p>
+                <div class="quiz-options">
+                    <label><input type="radio" name="q5" value="a"> (a) Ready</label>
+                    <label><input type="radio" name="q5" value="b"> (b) Running</label>
+                    <label><input type="radio" name="q5" value="c"> (c) Waiting</label>
+                    <label><input type="radio" name="q5" value="d"> (d) Terminated</label>
+                </div>
+                <p id="q5-feedback" class="quiz-feedback"></p>
+            </div>
+
+            <button id="submit-quiz">Submit Quiz</button>
+            <div id="quiz-results"></div>
         </div>
     </div>
 
     <script>
-        // --- Tab Switching Logic ---
-        document.addEventListener('DOMContentLoaded', () => {
-            const tabButtons = document.querySelectorAll('.tab-button');
-            const tabContents = document.querySelectorAll('.tab-content');
-
-            function showTab(tabId) {
-                tabContents.forEach(content => {
-                    content.classList.remove('active');
-                });
-                tabButtons.forEach(button => {
-                    button.classList.remove('active');
-                });
-
-                document.getElementById(tabId).classList.add('active');
-                document.querySelector(`.tab-button[data-tab="${tabId}"]`).classList.add('active');
+        // Tab functionality
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tabcontent");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
             }
-
-            tabButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    const tabId = button.dataset.tab;
-                    showTab(tabId);
-                });
-            });
-
-            // Show the initial tab (Introduction)
-            showTab('intro');
-        });
-
-        // --- Quiz Logic ---
-        const quizQuestions = [
-            {
-                question: "Which of the following is NOT a standard process state?",
-                options: ["New", "Running", "Paused", "Terminated"],
-                correctAnswer: "Paused",
-                feedback: "The standard process states are New, Ready, Running, Waiting, and Terminated. 'Paused' is not a universally recognized standard state, though a process might be temporarily suspended."
-            },
-            {
-                question: "What information is primarily stored in a Process Control Block (PCB)?",
-                options: [
-                    "User data and program code",
-                    "Process state and CPU registers",
-                    "Hardware specifications of the CPU",
-                    "Network buffer contents"
-                ],
-                correctAnswer: "Process state and CPU registers",
-                feedback: "The PCB is crucial for managing a process, storing its current state, program counter, and the values of CPU registers, among other things."
-            },
-            {
-                question: "What is the main purpose of context switching?",
-                options: [
-                    "To speed up the CPU clock frequency",
-                    "To allow multiple processes to share the CPU",
-                    "To allocate more memory to a process",
-                    "To terminate a process gracefully"
-                ],
-                correctAnswer: "To allow multiple processes to share the CPU",
-                feedback: "Context switching enables multitasking by allowing the CPU to switch between different processes, giving the illusion of parallel execution."
-            },
-            {
-                question: "When a process is preempted, where is its current CPU state typically saved?",
-                options: [
-                    "On the hard drive",
-                    "In a temporary RAM buffer",
-                    "In its Process Control Block (PCB) and Kernel Stack",
-                    "Sent over the network to a backup server"
-                ],
-                correctAnswer: "In its Process Control Block (PCB) and Kernel Stack",
-                feedback: "The PCB stores general process information and registers, while the Kernel Stack is used to save context during kernel mode transitions like preemption."
-            },
-            {
-                question: "In a Round Robin scheduling algorithm, what happens to a running process when its time slice expires?",
-                options: [
-                    "It terminates immediately",
-                    "It goes to the Waiting state",
-                    "It is preempted and moved to the Ready queue",
-                    "It requests more time from the scheduler"
-                ],
-                correctAnswer: "It is preempted and moved to the Ready queue",
-                feedback: "Round Robin ensures fairness by preempting a process after its time slice and placing it back in the ready queue to await its next turn."
+            tablinks = document.getElementsByClassName("tablinks");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
             }
-        ];
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.className += " active";
+        }
 
-        function renderQuiz() {
-            const quizContainer = document.getElementById('quiz-container');
-            quizContainer.innerHTML = ''; // Clear previous questions
+        // Open the default tab on page load
+        document.getElementById("defaultOpen").click();
 
-            quizQuestions.forEach((q, index) => {
-                const questionDiv = document.createElement('div');
-                questionDiv.className = 'quiz-question';
-                questionDiv.innerHTML = `<p>Q${index + 1}: ${q.question}</p>`;
+        // Simulation Code
+        // Process states
+        const ProcessState = {
+            READY: "Ready",
+            RUNNING: "Running",
+            WAITING: "Waiting",
+            TERMINATED: "Terminated"
+        };
 
-                const optionsDiv = document.createElement('div');
-                optionsDiv.className = 'quiz-options';
+        class Process {
+            constructor(pid) {
+                this.pid = pid;
+                this.state = ProcessState.READY;
+                this.pc = 0; // Program Counter
+                this.registers = { A: 0, B: 0, C: 0, D: 0 }; // Example registers
+                this.priority = Math.floor(Math.random() * 10); // Random priority
+                this.creationTime = Date.now();
+                this.waitTime = 0;
+                this.burstTime = Math.floor(Math.random() * 10000); // Simulate burst time (ms)
+                this.memoryAddress = Math.floor(Math.random() * 1000); // Simulate memory address
+            }
+        }
 
-                q.options.forEach((option, optIndex) => {
-                    const label = document.createElement('label');
-                    const input = document.createElement('input');
-                    input.type = 'radio';
-                    input.name = `question${index}`;
-                    input.value = option;
-                    label.appendChild(input);
-                    label.appendChild(document.createTextNode(option));
-                    optionsDiv.appendChild(label);
-                });
+        class PCB {
+            constructor(process) {
+                this.pid = process.pid;
+                this.state = process.state;
+                this.pc = process.pc;
+                this.registers = { ...process.registers }; // Copy registers
+                this.memoryAddress = process.memoryAddress;
+                this.priority = process.priority;
+            }
+        }
 
-                const feedbackDiv = document.createElement('div');
-                feedbackDiv.className = 'quiz-feedback';
-                feedbackDiv.id = `feedback-q${index}`;
-                optionsDiv.appendChild(feedbackDiv);
+        let processes = [];
+        let nextPid = 1; // Start PID counter
+        let currentProcess = null; // Currently running process
 
-                questionDiv.appendChild(optionsDiv);
-                quizContainer.appendChild(questionDiv);
+        const createProcessButton = document.getElementById("create-process");
+        const contextSwitchButton = document.getElementById("context-switch");
+        const processVisualization = document.getElementById("process-visualization");
+        const pcbDisplay = document.getElementById("pcb-display");
+        const logElement = document.getElementById("log");
+
+        function log(message) {
+            const logEntry = document.createElement("p");
+            logEntry.textContent = message;
+            logElement.appendChild(logEntry);
+            logElement.scrollTop = logElement.scrollHeight; // Auto-scroll to bottom
+        }
+
+        function updateVisualization() {
+            processVisualization.innerHTML = ""; // Clear existing visualization
+
+            processes.forEach(process => {
+                const processDiv = document.createElement("div");
+                processDiv.classList.add("process");
+                processDiv.innerHTML = `PID: ${process.pid}, State: ${process.state}`;
+                processVisualization.appendChild(processDiv);
             });
         }
 
-        function submitQuiz() {
-            let score = 0;
-            const quizResultsDiv = document.getElementById('quiz-results');
-            const individualResultsDiv = document.getElementById('quiz-individual-results');
-            individualResultsDiv.innerHTML = ''; // Clear previous individual results
+        function updatePCBDisplay(process) {
+            if (!process) {
+                pcbDisplay.innerHTML = "No process selected.";
+                return;
+            }
 
-            quizQuestions.forEach((q, index) => {
-                const selectedOption = document.querySelector(`input[name="question${index}"]:checked`);
-                const feedbackDiv = document.getElementById(`feedback-q${index}`);
-                feedbackDiv.className = 'quiz-feedback'; // Reset classes
+            const pcb = new PCB(process); // Create PCB from current process
+            pcbDisplay.innerHTML = `
+                <h3>PCB (PID: ${pcb.pid})</h3>
+                <p>State: ${pcb.state}</p>
+                <p>PC: <input type="number" id="pc-input" value="${pcb.pc}"></p>
+                <p>Registers: A=<input type="number" id="register-a-input" value="${pcb.registers.A}">, B=<input type="number" id="register-b-input" value="${pcb.registers.B}">, C=<input type="number" id="register-c-input" value="${pcb.registers.C}">, D=<input type="number" id="register-d-input" value="${pcb.registers.D}"></p>
+                <p>Memory Address: ${pcb.memoryAddress}</p>
+                <p>Priority: ${pcb.priority}</p>
+                <button id="validate-button">Validate</button>
+            `;
+
+            const validateButton = document.getElementById("validate-button");
+            validateButton.addEventListener("click", () => {
+                const pcInput = document.getElementById("pc-input").value;
+                const registerAInput = document.getElementById("register-a-input").value;
+                const registerBInput = document.getElementById("register-b-input").value;
+                const registerCInput = document.getElementById("register-c-input").value;
+                const registerDInput = document.getElementById("register-d-input").value;
+
+                let isValid = true;
+                if (parseInt(pcInput) !== currentProcess.pc) {
+                    log("Validation Error: PC is incorrect.");
+                    isValid = false;
+                }
+                if (parseInt(registerAInput) !== currentProcess.registers.A) {
+                    log("Validation Error: Register A is incorrect.");
+                    isValid = false;
+                }
+                if (parseInt(registerBInput) !== currentProcess.registers.B) {
+                    log("Validation Error: Register B is incorrect.");
+                    isValid = false;
+                }
+                if (parseInt(registerCInput) !== currentProcess.registers.C) {
+                    log("Validation Error: Register C is incorrect.");
+                    isValid = false;
+                }
+                if (parseInt(registerDInput) !== currentProcess.registers.D) {
+                    log("Validation Error: Register D is incorrect.");
+                    isValid = false;
+                }
+
+                if (isValid) {
+                    log("Validation Successful!");
+                }
+            });
+        }
+
+        createProcessButton.addEventListener("click", () => {
+            const newProcess = new Process(nextPid++);
+            processes.push(newProcess);
+            updateVisualization();
+            log(`Process ${newProcess.pid} created.`);
+        });
+
+        contextSwitchButton.addEventListener("click", () => {
+            if (processes.length === 0) return;
+
+            if (currentProcess) {
+                currentProcess.state = ProcessState.READY; // Back to ready
+            }
+
+            let nextProcessIndex = (processes.findIndex(p => p.pid === (currentProcess ? currentProcess.pid : 0)) + 1) % processes.length;
+            let attempts = 0;
+            while (processes[nextProcessIndex].state !== ProcessState.READY && attempts < processes.length) {
+                nextProcessIndex = (nextProcessIndex + 1) % processes.length;
+                attempts++;
+            }
+
+            if (attempts === processes.length) {
+                console.log("No processes in READY state.");
+                return; // No process to switch to
+            }
+
+            currentProcess = processes[nextProcessIndex];
+            currentProcess.state = ProcessState.RUNNING;
+            updateVisualization();
+            updatePCBDisplay(currentProcess);
+            log(`Context switch to process ${currentProcess.pid}.`);
+        });
+
+        // Quiz functionality
+        const submitQuizButton = document.getElementById("submit-quiz");
+        const quizResultsDiv = document.getElementById("quiz-results");
+
+        submitQuizButton.addEventListener("click", () => {
+            let score = 0;
+            const answers = {
+                q1: "c",
+                q2: "a",
+                q3: "d",
+                q4: "b",
+                q5: "c"
+            };
+
+            for (let i = 1; i <= 5; i++) {
+                const selectedOption = document.querySelector(`input[name="q${i}"]:checked`);
+                const feedbackElement = document.getElementById(`q${i}-feedback`);
 
                 if (selectedOption) {
-                    if (selectedOption.value === q.correctAnswer) {
+                    if (selectedOption.value === answers[`q${i}`]) {
                         score++;
-                        feedbackDiv.classList.add('correct');
-                        feedbackDiv.textContent = 'Correct!';
-                        individualResultsDiv.innerHTML += `<p>Q${index + 1}: <span style="color: green;">Correct</span></p>`;
+                        feedbackElement.textContent = "Correct!";
+                        feedbackElement.style.color = "green";
                     } else {
-                        feedbackDiv.classList.add('incorrect');
-                        feedbackDiv.textContent = `Incorrect. Correct answer: "${q.correctAnswer}". ${q.feedback}`;
-                        individualResultsDiv.innerHTML += `<p>Q${index + 1}: <span style="color: red;">Incorrect</span> (Correct: ${q.correctAnswer})</p>`;
+                        feedbackElement.textContent = "Incorrect.";
+                        feedbackElement.style.color = "red";
                     }
                 } else {
-                    feedbackDiv.classList.add('incorrect');
-                    feedbackDiv.textContent = `Please select an answer. Correct answer: "${q.correctAnswer}". ${q.feedback}`;
-                    individualResultsDiv.innerHTML += `<p>Q${index + 1}: <span style="color: orange;">Unanswered</span> (Correct: ${q.correctAnswer})</p>`;
-                }
-            });
-
-            quizResultsDiv.querySelector('.score').textContent = `You scored ${score} out of ${quizQuestions.length}.`;
-            quizResultsDiv.style.display = 'block'; // Show results
-            quizResultsDiv.scrollIntoView({ behavior: 'smooth' }); // Scroll to results
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            renderQuiz(); // Render quiz questions when the DOM is loaded
-            document.getElementById('quiz-submit-btn').addEventListener('click', submitQuiz);
-        });
-
-
-        // --- Simulation JavaScript (Copied directly from provided code) ---
-        // 1. Process Class: Represents a single simulated process
-        class Process {
-            constructor(id, name) {
-                this.id = id;
-                this.name = name;
-                this.state = 'New'; // Initial state of the process
-                this.pcb = { // Process Control Block
-                    pid: id,
-                    state: this.state,
-                    programCounter: 0, // Simulated instruction pointer
-                    registers: { AX: 0, BX: 0, CX: 0, DX: 0 }, // General purpose registers
-                    stackPointer: 0 // Simplified, points to top of kernelStack
-                };
-                this.kernelStack = []; // Simplified array representing kernel stack frames
-            }
-
-            /**
-             * Simulates saving the current CPU context into the process's PCB and stack.
-             * This happens when a process is preempted or goes to a waiting state.
-             * @param {object} currentCPUState - The current state of the simulated CPU registers.
-             */
-            saveContext(currentCPUState) {
-                this.pcb.programCounter = currentCPUState.pc;
-                this.pcb.registers = { ...currentCPUState.registers }; // Deep copy registers to avoid reference issues
-                this.pcb.stackPointer = currentCPUState.sp;
-
-                // Simulate pushing some values onto the kernel stack for visualization
-                // In a real OS, much more context would be saved.
-                this.kernelStack.push(`PC: 0x${currentCPUState.pc.toString(16).padStart(4, '0')}`);
-                this.kernelStack.push(`AX: 0x${currentCPUState.registers.AX.toString(16).padStart(4, '0')}`);
-                this.kernelStack.push(`SP: 0x${currentCPUState.sp.toString(16).padStart(4, '0')}`);
-                Logger.logAction('Process Context Saved', { pid: this.id, pcb: { ...this.pcb }, stackTop: this.kernelStack[this.kernelStack.length - 1] });
-            }
-
-            /**
-             * Simulates loading the process's context into the CPU.
-             * This happens when a process is dispatched to the CPU.
-             * @param {object} cpuStateToLoadInto - The simulated CPU state object to update.
-             */
-            loadContext(cpuStateToLoadInto) {
-                cpuStateToLoadInto.pc = this.pcb.programCounter;
-                cpuStateToLoadInto.registers = { ...this.pcb.registers }; // Deep copy registers
-                cpuStateToLoadInto.sp = this.pcb.stackPointer;
-
-                // For simplicity, we just load PCB values. In a real scenario, stack would be popped to restore state.
-                Logger.logAction('Process Context Loaded', { pid: this.id, pcb: { ...this.pcb } });
-            }
-        }
-
-        // 2. OSSimulator Object: The core simulation engine
-        const OSSimulator = {
-            processes: [],          // Array of all Process objects
-            runningProcessId: null, // ID of the currently running process, or null if CPU is idle
-            readyQueue: [],         // Array of process IDs in the ready state
-            waitingQueue: [],       // Array of process IDs in the waiting state
-            nextProcessId: 1,       // Counter for unique process IDs
-            // Simulated CPU state (registers)
-            cpuState: { pc: 0, registers: { AX: 0, BX: 0, CX: 0, DX: 0 }, sp: 0 },
-            autoModeInterval: null, // Stores the interval ID for auto-scheduling
-
-            /**
-             * Initializes the simulation, setting up the initial UI.
-             */
-            init() {
-                this.updateUI();
-            },
-
-            /**
-             * Creates a new process, adds it to the ready queue, and updates the UI.
-             */
-            createProcess() {
-                const newProcess = new Process(this.nextProcessId++, `Process ${this.nextProcessId - 1}`);
-                newProcess.state = 'Ready';
-                newProcess.pcb.state = 'Ready';
-                this.processes.push(newProcess);
-                this.readyQueue.push(newProcess.id);
-                Logger.logAction('Process Created', { pid: newProcess.id, name: newProcess.name, state: newProcess.state });
-                this.updateUI();
-            },
-
-            /**
-             * Dispatches a process to the CPU. If another process is running, it's preempted.
-             * @param {number} processId - The ID of the process to dispatch.
-             */
-            dispatchProcess(processId) {
-                if (this.runningProcessId !== null) {
-                    // If a process is currently running, preempt it first
-                    this.preemptProcess('manual_dispatch');
-                }
-
-                const processToRun = this.processes.find(p => p.id === processId);
-                // Ensure the process exists and is in a dispatchable state
-                if (processToRun && (processToRun.state === 'Ready' || processToRun.state === 'Waiting')) {
-                    // Remove process from its current queue
-                    this.readyQueue = this.readyQueue.filter(id => id !== processId);
-                    this.waitingQueue = this.waitingQueue.filter(id => id !== processId);
-
-                    // Load process context into CPU
-                    processToRun.loadContext(this.cpuState);
-                    processToRun.state = 'Running';
-                    processToRun.pcb.state = 'Running'; // Update PCB state
-                    this.runningProcessId = processId;
-
-                    Logger.logAction('Process Dispatched', { pid: processId, state: processToRun.state });
-                    this.updateUI();
-                } else {
-                    alert('Cannot dispatch a non-ready/waiting or non-existent process.');
-                }
-            },
-
-            /**
-             * Preempts the currently running process.
-             * @param {string} reason - The reason for preemption (e.g., 'manual_preempt', 'auto_preempt', 'io_request').
-             */
-            preemptProcess(reason = 'manual_preempt') {
-                if (this.runningProcessId === null) return; // No process running to preempt
-
-                const currentProcess = this.processes.find(p => p.id === this.runningProcessId);
-                if (currentProcess) {
-                    // Save current CPU context into the process's PCB
-                    currentProcess.saveContext(this.cpuState);
-
-                    // Determine new state based on reason for preemption
-                    currentProcess.state = (reason === 'manual_preempt' || reason === 'auto_preempt') ? 'Ready' : 'Waiting';
-                    currentProcess.pcb.state = currentProcess.state; // Update PCB state
-
-                    // Add to appropriate queue
-                    if (currentProcess.state === 'Ready') {
-                        this.readyQueue.push(currentProcess.id);
-                    } else {
-                        this.waitingQueue.push(currentProcess.id);
-                    }
-
-                    Logger.logAction('Process Preempted', { pid: currentProcess.id, reason: reason, newState: currentProcess.state });
-
-                    this.runningProcessId = null;
-                    // Clear CPU state to simulate CPU being idle or ready for next process
-                    this.cpuState = { pc: 0, registers: { AX: 0, BX: 0, CX: 0, DX: 0 }, sp: 0 };
-                    this.updateUI();
-                }
-            },
-
-            /**
-             * Terminates a process, removing it from queues and clearing CPU if it was running.
-             * @param {number} processId - The ID of the process to terminate.
-             */
-            terminateProcess(processId) {
-                const processToTerminate = this.processes.find(p => p.id === processId);
-                if (processToTerminate) {
-                    if (this.runningProcessId === processId) {
-                        this.runningProcessId = null; // CPU becomes idle
-                        this.cpuState = { pc: 0, registers: { AX: 0, BX: 0, CX: 0, DX: 0 }, sp: 0 };
-                    }
-                    // Remove from any queues it might be in
-                    this.readyQueue = this.readyQueue.filter(id => id !== processId);
-                    this.waitingQueue = this.waitingQueue.filter(id => id !== processId);
-
-                    processToTerminate.state = 'Terminated';
-                    processToTerminate.pcb.state = 'Terminated';
-                    Logger.logAction('Process Terminated', { pid: processId });
-                    this.updateUI();
-                }
-            },
-
-            /**
-             * Toggles the automatic scheduling mode (starts/stops Round Robin).
-             */
-            toggleAutoSchedule() {
-                if (this.autoModeInterval) {
-                    clearInterval(this.autoModeInterval);
-                    this.autoModeInterval = null;
-                    Logger.logAction('Auto Schedule Off', {});
-                } else {
-                    Logger.logAction('Auto Schedule On', {});
-                    this.autoModeInterval = setInterval(() => {
-                        this.autoScheduleStep();
-                    }, 2000); // Schedule every 2 seconds
-                }
-                this.updateUI(); // Update button text
-            },
-
-            /**
-             * Executes one step of the automatic scheduling algorithm (Round Robin).
-             */
-            autoScheduleStep() {
-                if (this.runningProcessId !== null) {
-                    // Preempt current process (e.g., time slice expired)
-                    this.preemptProcess('auto_preempt');
-                }
-
-                // Simple Round Robin: pick next from ready queue
-                if (this.readyQueue.length > 0) {
-                    const nextProcessId = this.readyQueue.shift(); // Get first process from ready queue
-                    this.readyQueue.push(nextProcessId); // Put it at the end for Round Robin fairness
-                    this.dispatchProcess(nextProcessId);
-                } else if (this.waitingQueue.length > 0) {
-                    // If ready queue is empty, but waiting processes exist,
-                    // for simplicity, simulate an I/O completion and move one from waiting to ready
-                    const nextProcessId = this.waitingQueue.shift();
-                    this.readyQueue.push(nextProcessId);
-                    Logger.logAction('Process Moved to Ready', { pid: nextProcessId, reason: 'Simulated I/O Complete' });
-                    this.dispatchProcess(nextProcessId);
-                }
-                else {
-                    // No processes in ready or waiting queue, CPU idle
-                    Logger.logAction('CPU Idle', {});
-                    this.updateUI();
-                }
-            },
-
-            /**
-             * Central function to trigger all necessary UI updates.
-             */
-            updateUI() {
-                UIRenderer.renderProcessList(this.processes, this.runningProcessId);
-                UIRenderer.updateCPUState(this.cpuState);
-                UIRenderer.updateControls(this.autoModeInterval !== null);
-                Logger.displayLog(); // No need to pass logEntries, Logger manages its own state
-
-                // Re-render details if a process is currently selected
-                const selectedProcessCard = document.querySelector('.process-card.selected');
-                if (selectedProcessCard) {
-                    const selectedPid = parseInt(selectedProcessCard.dataset.pid);
-                    const selectedProcess = this.processes.find(p => p.id === selectedPid);
-                    UIRenderer.renderProcessDetails(selectedProcess);
-                } else {
-                    UIRenderer.renderProcessDetails(null); // Clear details if no process selected
+                    feedbackElement.textContent = "Please select an answer.";
+                    feedbackElement.style.color = "red";
                 }
             }
-        };
 
-        // 3. UIRenderer Object: Manages all DOM manipulations for displaying simulation state
-        const UIRenderer = {
-            processListDiv: document.getElementById('process-list'),
-            cpuRegistersDiv: document.getElementById('cpu-registers'),
-            processDetailsDiv: document.getElementById('process-details'),
-            autoScheduleBtn: document.getElementById('btn-auto-schedule'),
-
-            /**
-             * Renders or updates the list of process cards.
-             * @param {Array<Process>} processes - Array of all process objects.
-             * @param {number|null} runningProcessId - ID of the currently running process.
-             */
-            renderProcessList(processes, runningProcessId) {
-                this.processListDiv.innerHTML = ''; // Clear existing cards
-                if (processes.length === 0) {
-                    this.processListDiv.innerHTML = '<h2>Processes</h2><p>No processes created yet.</p>';
-                    return;
-                }
-
-                processes.forEach(p => {
-                    const card = document.createElement('div');
-                    card.className = `process-card state-${p.state.toLowerCase()}`;
-                    if (p.id === runningProcessId) {
-                        card.classList.add('running-now');
-                    }
-                    card.dataset.pid = p.id; // Store PID for easy lookup
-
-                    // Check if this card was previously selected to maintain selection across updates
-                    const wasSelected = document.querySelector(`.process-card.selected[data-pid="${p.id}"]`);
-                    if (wasSelected) {
-                        card.classList.add('selected');
-                    }
-
-                    card.innerHTML = `
-                        <h3>${p.name} (PID: ${p.id})</h3>
-                        <p>State: <span class="state-indicator">${p.state}</span></p>
-                        <div class="process-actions">
-                            <button onclick="OSSimulator.dispatchProcess(${p.id})" ${p.state === 'Running' || p.state === 'Terminated' ? 'disabled' : ''}>Dispatch</button>
-                            <button onclick="OSSimulator.preemptProcess('manual_preempt')" ${p.id !== runningProcessId ? 'disabled' : ''}>Preempt</button>
-                            <button onclick="OSSimulator.terminateProcess(${p.id})" ${p.state === 'Terminated' ? 'disabled' : ''}>Terminate</button>
-                            <button onclick="UIRenderer.renderProcessDetails(OSSimulator.processes.find(pr => pr.id === ${p.id}))">View PCB</button>
-                        </div>
-                    `;
-                    this.processListDiv.appendChild(card);
-                });
-            },
-
-            /**
-             * Updates the display of simulated CPU registers.
-             * @param {object} cpuState - The current state of the simulated CPU.
-             */
-            updateCPUState(cpuState) {
-                this.cpuRegistersDiv.innerHTML = `
-                    <h4>Simulated CPU Registers</h4>
-                    <p>PC: 0x${cpuState.pc.toString(16).padStart(4, '0')}</p>
-                    <p>AX: 0x${cpuState.registers.AX.toString(16).padStart(4, '0')}</p>
-                    <p>BX: 0x${cpuState.registers.BX.toString(16).padStart(4, '0')}</p>
-                    <p>CX: 0x${cpuState.registers.CX.toString(16).padStart(4, '0')}</p>
-                    <p>DX: 0x${cpuState.registers.DX.toString(16).padStart(4, '0')}</p>
-                    <p>SP: 0x${cpuState.sp.toString(16).padStart(4, '0')}</p>
-                `;
-            },
-
-            /**
-             * Renders the detailed PCB and Kernel Stack for a selected process.
-             * @param {Process|null} process - The process object to display details for, or null to clear.
-             */
-            renderProcessDetails(process) {
-                // Remove 'selected' class from all process cards first
-                document.querySelectorAll('.process-card').forEach(card => card.classList.remove('selected'));
-
-                if (!process) {
-                    this.processDetailsDiv.innerHTML = '<h2>Process Details</h2><p>Select a process from the list to view its PCB and Kernel Stack.</p>';
-                    return;
-                }
-
-                // Add 'selected' class to the current process card
-                const currentCard = document.querySelector(`.process-card[data-pid="${process.id}"]`);
-                if (currentCard) {
-                    currentCard.classList.add('selected');
-                }
-
-                this.processDetailsDiv.innerHTML = `
-                    <h2>Process Details</h2>
-                    <h4>PCB for ${process.name} (PID: ${process.id})</h4>
-                    <div id="pcb-display">
-                        <p><strong>State:</strong> ${process.pcb.state}</p>
-                        <p><strong>Program Counter:</strong> 0x${process.pcb.programCounter.toString(16).padStart(4, '0')}</p>
-                        <p><strong>Registers:</strong></p>
-                        <ul>
-                            <li>AX: 0x${process.pcb.registers.AX.toString(16).padStart(4, '0')}</li>
-                            <li>BX: 0x${process.pcb.registers.BX.toString(16).padStart(4, '0')}</li>
-                            <li>CX: 0x${process.pcb.registers.CX.toString(16).padStart(4, '0')}</li>
-                            <li>DX: 0x${process.pcb.registers.DX.toString(16).padStart(4, '0')}</li>
-                        </ul>
-                        <p><strong>Stack Pointer:</strong> 0x${process.pcb.stackPointer.toString(16).padStart(4, '0')}</p>
-                    </div>
-                    <h4>Kernel Stack for ${process.name}</h4>
-                    <div id="kernel-stack-display">
-                        ${process.kernelStack.length > 0 ?
-                            `<ul>${process.kernelStack.slice().reverse().map(item => `<li>${item}</li>`).join('')}</ul>` : // Reverse to show stack top at bottom
-                            '<p>Stack is empty or not yet used.</p>'
-                        }
-                    </div>
-                `;
-            },
-
-            /**
-             * Updates the text of the auto-schedule button based on its state.
-             * @param {boolean} isAutoMode - True if auto-scheduling is active, false otherwise.
-             */
-            updateControls(isAutoMode) {
-                this.autoScheduleBtn.textContent = isAutoMode ? 'Stop Auto Schedule' : 'Start Auto Schedule (Round Robin)';
-            }
-        };
-
-        // 4. Logger Object: Records all significant student actions and simulation events
-        const Logger = {
-            logEntries: [], // Stores all log entries
-            logDisplayDiv: document.getElementById('log-display'),
-
-            /**
-             * Adds a new action to the log.
-             * @param {string} actionType - A brief description of the action (e.g., 'Process Created').
-             * @param {object} details - An object containing relevant details for the log entry.
-             */
-            logAction(actionType, details) {
-                const timestamp = new Date().toLocaleTimeString();
-                this.logEntries.push({ timestamp, actionType, details });
-                this.displayLog(); // Immediately update the display
-            },
-
-            /**
-             * Renders all log entries to the log display area.
-             */
-            displayLog() {
-                this.logDisplayDiv.innerHTML = '<h2>Simulation Log</h2>' + this.logEntries.map(entry =>
-                    `<p><strong>[${entry.timestamp}] ${entry.actionType}:</strong> ${JSON.stringify(entry.details)}</p>`
-                ).join('');
-                this.logDisplayDiv.scrollTop = this.logDisplayDiv.scrollHeight; // Auto-scroll to bottom
-            }
-        };
-
-        // 5. LogValidator Object: Analyzes the recorded log entries to validate student actions
-        const LogValidator = {
-            validationResultsDiv: document.getElementById('validation-results'),
-
-            /**
-             * Validates the sequence of events in the simulation log.
-             * @param {Array<object>} log - The array of log entries to validate.
-             */
-            validate(log) {
-                this.validationResultsDiv.innerHTML = '<h2>Validation Results</h2>';
-                let overallSuccess = true;
-
-                // Rule 1: Check for context save/load consistency
-                // Tracks processes whose context was saved and expects a load or termination
-                const savedContexts = {}; // { pid: { lastSavedEntryIndex, pcbAtSave, stackTopAtSave } }
-
-                for (let i = 0; i < log.length; i++) {
-                    const entry = log[i];
-                    if (entry.actionType === 'Process Context Saved') {
-                        savedContexts[entry.details.pid] = {
-                            index: i,
-                            pcb: entry.details.pcb,
-                            stackTop: entry.details.stackTop // Simplified check for stack consistency
-                        };
-                    } else if (entry.actionType === 'Process Context Loaded') {
-                        const pid = entry.details.pid;
-                        if (savedContexts[pid]) {
-                            // A context was saved and now loaded. This is a good sign.
-                            this.validationResultsDiv.innerHTML += `<p class="success">&#10003; PID ${pid}: Context saved at [${log[savedContexts[pid].index].timestamp}] was successfully loaded at [${entry.timestamp}].</p>`;
-                            // In a more advanced validator, one would compare the loaded PCB with the saved PCB values.
-                            delete savedContexts[pid]; // Mark as handled
-                        } else {
-                            this.validationResultsDiv.innerHTML += `<p class="warning">&#9888; PID ${pid}: Context loaded at [${entry.timestamp}] without a preceding explicit save in the log (might be initial dispatch or log truncated). This is common for the first dispatch of a new process.</p>`;
-                            // This is not necessarily an error, but a warning for unexpected loads.
-                            overallSuccess = false;
-                        }
-                    } else if (entry.actionType === 'Process Terminated') {
-                        const pid = entry.details.pid;
-                        if (savedContexts[pid]) {
-                            // If a process was terminated after its context was saved, no subsequent load is expected.
-                            this.validationResultsDiv.innerHTML += `<p class="success">&#10003; PID ${pid}: Context was saved but process terminated, so no subsequent load expected.</p>`;
-                            delete savedContexts[pid];
-                        }
-                    }
-                }
-
-                // Check for any contexts that were saved but never loaded or terminated
-                for (const pid in savedContexts) {
-                    this.validationResultsDiv.innerHTML += `<p class="error">&#10007; PID ${pid}: Context saved at [${log[savedContexts[pid].index].timestamp}] was never loaded or terminated. (Potential resource leak/error in manual steps).</p>`;
-                    overallSuccess = false;
-                }
-
-                // Rule 2: Basic state transitions (e.g., cannot dispatch terminated process)
-                // This would require tracking process states throughout the log, which is more complex.
-                // For now, the UI disabling buttons helps prevent invalid transitions.
-
-                if (overallSuccess) {
-                    this.validationResultsDiv.innerHTML += `<p class="success"><strong>Overall: All critical context switching operations appear consistent.</strong></p>`;
-                } else {
-                    this.validationResultsDiv.innerHTML += `<p class="error"><strong>Overall: Some inconsistencies found. Review the log and your actions.</strong></p>`;
-                }
-            }
-        };
-
-        // Initialisation: Attach event listeners and start simulation when DOM is fully loaded
-        document.addEventListener('DOMContentLoaded', () => {
-            OSSimulator.init(); // Initialize the simulation and UI
-
-            // Attach event listeners to control buttons
-            document.getElementById('btn-create-process').addEventListener('click', () => OSSimulator.createProcess());
-            document.getElementById('btn-auto-schedule').addEventListener('click', () => OSSimulator.toggleAutoSchedule());
-            document.getElementById('btn-validate-log').addEventListener('click', () => LogValidator.validate(Logger.logEntries));
+            quizResultsDiv.textContent = `Your score: ${score} / 5`;
         });
     </script>
+
 </body>
 </html>
